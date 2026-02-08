@@ -91,7 +91,7 @@ export class HUD extends Phaser.Events.EventEmitter {
     this.livesText.setDepth(HUD.DEPTH);
 
     // ---- Credits display (right area) ----
-    this.creditsText = scene.add.text(880, 8, 'Credits: 200', {
+    this.creditsText = scene.add.text(840, 8, 'Credits: 200', {
       fontFamily: HUD.FONT_FAMILY,
       fontSize: '16px',
       color: HUD.LABEL_COLOR,
@@ -111,12 +111,12 @@ export class HUD extends Phaser.Events.EventEmitter {
     // ---- Mute toggle button (top-right corner) ----
     const sm = scene.registry.get('soundManager') as SoundManager | undefined;
     const muteLabel = sm?.isMuted ? '[MUTED]' : '[SFX]';
-    this.muteButton = scene.add.text(990, 8, muteLabel, {
+    this.muteButton = scene.add.text(1006, 8, muteLabel, {
       fontFamily: HUD.FONT_FAMILY,
-      fontSize: '14px',
+      fontSize: '12px',
       color: sm?.isMuted ? '#666666' : HUD.LABEL_COLOR,
     });
-    this.muteButton.setOrigin(0.5, 0);
+    this.muteButton.setOrigin(1, 0);
     this.muteButton.setScrollFactor(0);
     this.muteButton.setDepth(HUD.DEPTH);
     this.muteButton.setInteractive({ useHandCursor: true });

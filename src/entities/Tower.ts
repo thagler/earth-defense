@@ -67,6 +67,10 @@ export class Tower extends Phaser.GameObjects.Container {
       this.rangeIndicator.setVisible(false);
     });
 
+    this.on('pointerdown', () => {
+      this.emit('tower-clicked', this);
+    });
+
     scene.add.existing(this);
   }
 

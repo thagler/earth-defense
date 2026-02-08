@@ -249,9 +249,18 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // ---- Tower placed: visual effect ----
+    // ---- Tower placed: visual effect + click-to-inspect wiring ----
     this.towerManager.events.on('tower-placed', (data: { tower: Tower }) => {
       ParticleEffects.towerPlaceEffect(this, data.tower.x, data.tower.y);
+
+      // When the player clicks a placed tower, show its info panel
+      data.tower.on('tower-clicked', (tower: Tower) => {
+        const canAfford = this.economyManager.canUpgradeTower(
+          tower.towerKey,
+          tower.currentTier,
+        );
+        this.towerInfoPanel.show(tower, canAfford);
+      });
     });
 
     // ---- Tower upgraded: visual effect ----
