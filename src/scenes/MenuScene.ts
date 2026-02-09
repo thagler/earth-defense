@@ -155,6 +155,7 @@ export class MenuScene extends Phaser.Scene {
       const bx = startX + i * (buttonWidth + buttonSpacing);
       const by = height * 0.64;
 
+      const buttonHeight = 48;
       const levelBtn = this.add
         .text(bx, by, `${lvl.level}. ${lvl.name}`, {
           fontSize: '13px',
@@ -164,6 +165,7 @@ export class MenuScene extends Phaser.Scene {
           padding: { x: 8, y: 8 },
           align: 'center',
           fixedWidth: buttonWidth,
+          fixedHeight: buttonHeight,
           wordWrap: { width: buttonWidth - 16 },
         })
         .setOrigin(0.5)
