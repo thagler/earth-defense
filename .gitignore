@@ -3,4 +3,5 @@ dist/
 .DS_Store
 *.local
 *.png
+!public/og-image.png
 .playwright-mcp/

@@ -1,6 +1,6 @@
 {
   "name": "tower-defence",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Earth Defense - A chill sci-fi tower defense game",
   "type": "module",
   "scripts": {

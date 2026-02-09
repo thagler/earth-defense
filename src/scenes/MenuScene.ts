@@ -200,7 +200,7 @@ export class MenuScene extends Phaser.Scene {
 
     // ---- Footer (version links to changelog) ----
     const versionText = this.add
-      .text(width / 2, height * 0.9, 'v1.0.0 -- Earth Defense', {
+      .text(width / 2, height * 0.9, 'v1.0.1 -- Earth Defense', {
         fontSize: '12px',
         color: '#444444',
         fontFamily: 'monospace',
