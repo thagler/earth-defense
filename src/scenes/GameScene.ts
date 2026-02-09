@@ -276,6 +276,7 @@ export class GameScene extends Phaser.Scene {
 
     // ---- Tower info panel: upgrade requested ----
     this.towerInfoPanel.on('upgrade-requested', (tower: Tower) => {
+      if (!tower.hasEnoughKills()) return;
       if (!this.economyManager.canUpgradeTower(tower.towerKey, tower.currentTier)) return;
 
       const spent = this.economyManager.upgradeTower(tower.towerKey, tower.currentTier);

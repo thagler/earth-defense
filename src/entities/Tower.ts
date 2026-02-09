@@ -5,11 +5,15 @@ import { SoundManager } from '../systems/SoundManager';
 
 const TILE_SIZE = 64;
 
+/** Kills required before a tower can upgrade to the next tier. */
+export const UPGRADE_KILLS_REQUIRED: [number, number] = [3, 5]; // tier 1→2, tier 2→3
+
 export class Tower extends Phaser.GameObjects.Container {
   public readonly towerKey: string;
   public readonly config: TowerConfig;
   public currentTier: number = 1;
   public creditsSpent: number = 0;
+  public kills: number = 0;
 
   private towerBody: Phaser.GameObjects.Arc | Phaser.GameObjects.Sprite;
   private rangeIndicator: Phaser.GameObjects.Arc;
@@ -118,6 +122,23 @@ export class Tower extends Phaser.GameObjects.Container {
     return Math.floor(this.getTotalInvestment() * this.config.sellRefundRate);
   }
 
+  /** Increment this tower's kill counter. */
+  public addKill(): void {
+    this.kills++;
+  }
+
+  /** Returns the number of kills still needed before the next upgrade is unlocked. */
+  public killsUntilUpgrade(): number {
+    if (this.currentTier >= 3) return 0;
+    const required = UPGRADE_KILLS_REQUIRED[this.currentTier - 1];
+    return Math.max(0, required - this.kills);
+  }
+
+  /** Whether this tower has enough kills to unlock the next tier. */
+  public hasEnoughKills(): boolean {
+    return this.killsUntilUpgrade() === 0;
+  }
+
   /**
    * Main update loop called each frame by TowerManager.
    * @param time - total elapsed game time (ms)
@@ -197,6 +218,7 @@ export class Tower extends Phaser.GameObjects.Container {
       color: this.config.color,
       splashRadius: hasSplash ? tier.splashRadius! : 0,
       towerKey: this.towerKey,
+      sourceTower: this,
     });
 
     // Play the tower-type-specific firing sound
@@ -216,7 +238,11 @@ export class Tower extends Phaser.GameObjects.Container {
     for (const enemy of enemiesInRange) {
       // Damage
       if (typeof enemy.takeDamage === 'function') {
+        const wasAlive = enemy.isAlive;
         enemy.takeDamage(tier.damage);
+        if (wasAlive && !enemy.isAlive) {
+          this.addKill();
+        }
       }
 
       // Slow (cryo)

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Tower } from '../entities/Tower';
+import { Tower, UPGRADE_KILLS_REQUIRED } from '../entities/Tower';
 import { TowerTier, TOWERS } from '../config/towers';
 import { SoundManager } from '../systems/SoundManager';
 
@@ -31,7 +31,7 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
   private static readonly BG_COLOR = 0x1a1a2e;
   private static readonly BG_ALPHA = 0.95;
   private static readonly PANEL_WIDTH = 200;
-  private static readonly PANEL_HEIGHT = 240;
+  private static readonly PANEL_HEIGHT = 260;
   private static readonly DEPTH = 1001;
 
   constructor(scene: Phaser.Scene) {
@@ -139,6 +139,14 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
       statsLines.push(`Slow: ${Math.round((1 - tier.slowFactor) * 100)}%`);
     }
 
+    // Kill count and upgrade requirement
+    if (tierNum < 3) {
+      const required = UPGRADE_KILLS_REQUIRED[tierNum - 1];
+      statsLines.push(`Kills: ${tower.kills}/${required}`);
+    } else {
+      statsLines.push(`Kills: ${tower.kills}`);
+    }
+
     for (const line of statsLines) {
       const statText = this.scene.add.text(0, lineY, line, {
         fontFamily: TowerInfoPanel.FONT_FAMILY,
@@ -157,8 +165,14 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
     // Upgrade button
     const isMaxTier = tierNum >= 3;
     const upgradeCost = isMaxTier ? -1 : config.upgradeCosts[tierNum - 1];
-    const upgradeLabel = isMaxTier ? 'MAX TIER' : `Upgrade ($${upgradeCost})`;
-    const upgradeEnabled = !isMaxTier && canAffordUpgrade;
+    const needsMoreKills = !isMaxTier && !tower.hasEnoughKills();
+    const killsNeeded = needsMoreKills ? tower.killsUntilUpgrade() : 0;
+    const upgradeLabel = isMaxTier
+      ? 'MAX TIER'
+      : needsMoreKills
+        ? `Need ${killsNeeded} more kill${killsNeeded !== 1 ? 's' : ''}`
+        : `Upgrade ($${upgradeCost})`;
+    const upgradeEnabled = !isMaxTier && canAffordUpgrade && !needsMoreKills;
 
     this.createPanelButton(
       0,

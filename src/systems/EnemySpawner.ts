@@ -30,6 +30,8 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
   // ---- Spawn timing ----
   /** Accumulator for spawn timing (seconds). */
   private spawnTimer: number = 0;
+  /** The jittered interval for the next spawn (varies +/- 40% from base). */
+  private nextSpawnDelay: number = 0;
   /** True once the very first enemy of the current segment has been spawned. */
   private firstSpawnDone: boolean = false;
 
@@ -115,11 +117,23 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
   // Spawn logic
   // -------------------------------------------------------------------
 
+  /**
+   * Compute a jittered spawn delay: base interval +/- 40% random variance.
+   * This makes enemy entrance feel organic rather than metronomic.
+   */
+  private rollNextDelay(baseInterval: number): number {
+    const variance = 0.4;
+    const jitter = 1 + (Math.random() * 2 - 1) * variance; // 0.6 – 1.4
+    return baseInterval * jitter;
+  }
+
   private updateSpawnTimer(deltaSec: number): void {
     // Spawn the first enemy of the level immediately (timer starts at 0)
     if (!this.firstSpawnDone) {
       this.spawnNextEnemy();
       this.firstSpawnDone = true;
+      const segment = this.segments[this.currentSegmentIndex];
+      if (segment) this.nextSpawnDelay = this.rollNextDelay(segment.spawnInterval);
       return;
     }
 
@@ -131,14 +145,15 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
 
     this.spawnTimer += deltaSec;
 
-    // Spawn as many enemies as the accumulated time allows (handles lag spikes)
-    while (this.spawnTimer >= segment.spawnInterval && !this.allSegmentsExhausted) {
-      this.spawnTimer -= segment.spawnInterval;
+    // Spawn when the jittered delay has elapsed
+    while (this.spawnTimer >= this.nextSpawnDelay && !this.allSegmentsExhausted) {
+      this.spawnTimer -= this.nextSpawnDelay;
       this.spawnNextEnemy();
 
-      // Re-fetch segment reference in case we advanced
+      // Re-fetch segment and roll a new delay for the next spawn
       const currentSeg = this.segments[this.currentSegmentIndex];
       if (!currentSeg) break;
+      this.nextSpawnDelay = this.rollNextDelay(currentSeg.spawnInterval);
     }
   }
 

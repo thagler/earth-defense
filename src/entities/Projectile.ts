@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { Tower } from './Tower';
 
 export interface ProjectileConfig {
   startX: number;
@@ -9,6 +10,7 @@ export interface ProjectileConfig {
   color: string; // hex color string
   splashRadius: number; // 0 = no splash
   towerKey?: string; // tower type key for texture lookup
+  sourceTower?: Tower; // the tower that fired this projectile (for kill attribution)
 }
 
 const HIT_THRESHOLD = 5; // pixels; projectile considered "arrived" at target
@@ -106,7 +108,11 @@ export class Projectile extends Phaser.GameObjects.Container {
     } else {
       // Single-target damage
       if (target && typeof target.takeDamage === 'function') {
+        const wasAlive = target.isAlive;
         target.takeDamage(this.config.damage);
+        if (wasAlive && !target.isAlive && this.config.sourceTower) {
+          this.config.sourceTower.addKill();
+        }
       }
     }
 
@@ -133,7 +139,11 @@ export class Projectile extends Phaser.GameObjects.Container {
       const dist = Phaser.Math.Distance.Between(impactX, impactY, enemy.x, enemy.y);
       if (dist <= radius) {
         if (typeof enemy.takeDamage === 'function') {
+          const wasAlive = enemy.isAlive;
           enemy.takeDamage(this.config.damage);
+          if (wasAlive && !enemy.isAlive && this.config.sourceTower) {
+            this.config.sourceTower.addKill();
+          }
         }
       }
     }
