@@ -229,6 +229,11 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
+    // ---- Swarm split: adjust total enemy count for spawned children ----
+    this.enemySpawner.on('enemies-spawned-from-split', (data: { count: number }) => {
+      this.totalEnemies += data.count;
+    });
+
     // ---- Enemy reached base: lose a life + visual effects ----
     this.enemySpawner.on('enemy-reached-base', (data: { enemy: Enemy }) => {
       this.lives--;

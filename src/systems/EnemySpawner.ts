@@ -228,6 +228,7 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
       waypointIndex: number;
     }) => {
       this.handleSplit(data);
+      this.emit('enemies-spawned-from-split', { count: data.splitCount });
     });
 
     this.enemyGroup.add(enemy);
