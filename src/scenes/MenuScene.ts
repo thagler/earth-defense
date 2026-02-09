@@ -198,14 +198,21 @@ export class MenuScene extends Phaser.Scene {
       });
     }
 
-    // ---- Footer ----
-    this.add
-      .text(width / 2, height * 0.9, 'v0.1 -- Earth Defense', {
+    // ---- Footer (version links to changelog) ----
+    const versionText = this.add
+      .text(width / 2, height * 0.9, 'v1.0.0 -- Earth Defense', {
         fontSize: '12px',
         color: '#444444',
         fontFamily: 'monospace',
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    versionText.on('pointerover', () => versionText.setColor('#555555'));
+    versionText.on('pointerout', () => versionText.setColor('#444444'));
+    versionText.on('pointerdown', () => {
+      window.open('/changelog.html', '_blank');
+    });
 
     // ---- Register update for background animation ----
     this.events.on('update', this.onUpdate, this);

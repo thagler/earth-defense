@@ -24,6 +24,13 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - name: Stamp version into HTML
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Stamping version $VERSION"
+          sed -i "s/__VERSION__/$VERSION/g" index.html game.html changelog.html guide.html
+
       - run: npm run build
 
       - name: Deploy to gh-pages branch

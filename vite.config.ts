@@ -18,6 +18,8 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'index.html'),
         game: path.resolve(__dirname, 'game.html'),
+        changelog: path.resolve(__dirname, 'changelog.html'),
+        guide: path.resolve(__dirname, 'guide.html'),
       },
     },
   },
