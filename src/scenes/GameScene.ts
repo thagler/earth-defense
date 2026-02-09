@@ -111,6 +111,7 @@ export class GameScene extends Phaser.Scene {
     this.hud.updateCredits(this.economyManager.getCredits());
     this.hud.updateLives(this.lives, this.maxLives);
     this.hud.updateEnemiesRemaining(this.totalEnemies);
+    this.hud.updateLevelName(this.levelConfig.level, this.levelConfig.name);
     this.towerPicker.updateAffordability(this.economyManager.getCredits());
 
     // ---- Build slot click handling ----
@@ -333,6 +334,7 @@ export class GameScene extends Phaser.Scene {
       creditsEarned: stats.totalEarned,
       livesRemaining: this.lives,
       livesMax: this.maxLives,
+      level: this.level,
     };
 
     if (this.level >= maxLevel) {

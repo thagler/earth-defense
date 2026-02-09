@@ -274,15 +274,14 @@ export class HUD extends Phaser.Events.EventEmitter {
     container.add(titleText);
 
     // Stats lines
-    const statsLines: string[] = [
-      `Enemies Killed: ${stats.enemiesKilled}`,
-      `Credits Earned: ${stats.creditsEarned}`,
-    ];
-    if (stats.livesRemaining !== undefined && stats.livesMax !== undefined) {
-      statsLines.push(`Lives Remaining: ${stats.livesRemaining}/${stats.livesMax}`);
-    }
+    const statsLines: string[] = [];
     if (stats.level !== undefined) {
       statsLines.push(`Level: ${stats.level}`);
+    }
+    statsLines.push(`Enemies Killed: ${stats.enemiesKilled}`);
+    statsLines.push(`Credits Earned: ${stats.creditsEarned}`);
+    if (stats.livesRemaining !== undefined && stats.livesMax !== undefined) {
+      statsLines.push(`Lives Remaining: ${stats.livesRemaining}/${stats.livesMax}`);
     }
 
     let lineY = centerY - 50;
