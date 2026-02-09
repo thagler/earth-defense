@@ -156,42 +156,44 @@ export class MenuScene extends Phaser.Scene {
       const by = height * 0.64;
 
       const buttonHeight = 48;
-      const levelBtn = this.add
+
+      // Background rectangle (interactive hit area)
+      const btnBg = this.add
+        .rectangle(bx, by, buttonWidth, buttonHeight, 0x222244)
+        .setInteractive({ useHandCursor: true });
+
+      // Centered label text (no background -- the rectangle handles that)
+      const btnLabel = this.add
         .text(bx, by, `${lvl.level}. ${lvl.name}`, {
           fontSize: '13px',
           color: '#cccccc',
           fontFamily: 'monospace',
-          backgroundColor: '#222244',
-          padding: { x: 8, y: 8 },
           align: 'center',
-          fixedWidth: buttonWidth,
-          fixedHeight: buttonHeight,
           wordWrap: { width: buttonWidth - 16 },
         })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
+        .setOrigin(0.5);
 
-      levelBtn.on('pointerover', () => {
-        levelBtn.setColor('#00ffcc');
+      btnBg.on('pointerover', () => {
+        btnLabel.setColor('#00ffcc');
         this.tweens.add({
-          targets: levelBtn,
+          targets: [btnBg, btnLabel],
           scaleX: 1.08,
           scaleY: 1.08,
           duration: 120,
           ease: 'Back.easeOut',
         });
       });
-      levelBtn.on('pointerout', () => {
-        levelBtn.setColor('#cccccc');
+      btnBg.on('pointerout', () => {
+        btnLabel.setColor('#cccccc');
         this.tweens.add({
-          targets: levelBtn,
+          targets: [btnBg, btnLabel],
           scaleX: 1,
           scaleY: 1,
           duration: 120,
           ease: 'Quad.easeOut',
         });
       });
-      levelBtn.on('pointerdown', () => {
+      btnBg.on('pointerdown', () => {
         this.scene.start('GameScene', { level: lvl.level });
       });
     }
