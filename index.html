@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Earth Defense</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R76EMYFK8B"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-R76EMYFK8B');
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a1a;
+      color: #cccccc;
+      font-family: monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .launcher {
+      text-align: center;
+    }
+    h1 {
+      font-size: 48px;
+      color: #00ffcc;
+      margin-bottom: 16px;
+    }
+    p {
+      font-size: 16px;
+      color: #888888;
+      margin-bottom: 40px;
+    }
+    button {
+      font-family: monospace;
+      font-size: 24px;
+      color: #ffffff;
+      background: #333366;
+      border: 2px solid #00ffcc;
+      padding: 16px 48px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover {
+      background: #444488;
+      transform: scale(1.05);
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .hint {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #555555;
+    }
+  </style>
+</head>
+<body>
+  <div class="launcher">
+    <h1>EARTH DEFENSE</h1>
+    <p>Defend Earth from the alien invasion</p>
+    <button onclick="launchGame()">LAUNCH GAME</button>
+    <div class="hint">Opens in a 1024 x 768 window</div>
+  </div>
+  <script>
+    function launchGame() {
+      const w = 1024;
+      const h = 768;
+      const left = (screen.width - w) / 2;
+      const top = (screen.height - h) / 2;
+      window.open(
+        '/game.html',
+        'EarthDefense',
+        `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no`
+      );
+    }
+  </script>
+</body>
+</html>
