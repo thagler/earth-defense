@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Earth Defense - Player Guide</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZJFENG8Q18"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-ZJFENG8Q18');
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a1a;
+      color: #cccccc;
+      font-family: monospace;
+      padding: 40px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    h1 { color: #00ffcc; font-size: 28px; margin-bottom: 8px; }
+    h2 { color: #00ffcc; font-size: 18px; margin-top: 32px; margin-bottom: 12px; }
+    .subtitle { color: #555555; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { text-align: left; color: #00ffcc; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid #333355; }
+    td { padding: 8px; border-bottom: 1px solid #1a1a2e; vertical-align: top; }
+    .icon { font-size: 20px; text-align: center; width: 40px; }
+    .name { color: #ffffff; white-space: nowrap; width: 120px; }
+    .desc { color: #aaaaaa; font-size: 13px; }
+    .cost { color: #888888; font-size: 12px; white-space: nowrap; width: 100px; }
+    .tip { color: #888888; font-size: 13px; margin-top: 24px; line-height: 1.6; }
+    .back { margin-top: 40px; }
+    .back a { color: #00ffcc; text-decoration: none; }
+    .back a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Player Guide</h1>
+  <p class="subtitle">Earth Defense v1.0.0</p>
+
+  <h2>Aliens</h2>
+  <table>
+    <tr>
+      <th></th>
+      <th>Name</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#88ff88;">&#9679;</td>
+      <td class="name">Drone</td>
+      <td class="desc">Basic scout. Average speed, low HP.</td>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#ffff44;">&#9679;</td>
+      <td class="name">Skitter</td>
+      <td class="desc">Very fast, very fragile. Rushes past slow towers.</td>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#ff4444;">&#9679;</td>
+      <td class="name">Brute</td>
+      <td class="desc">Extremely tough and slow. Needs heavy firepower.</td>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#4488ff;">&#9679;</td>
+      <td class="name">Shielded</td>
+      <td class="desc">Energy barrier absorbs 50% damage. Shield regenerates.</td>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#ff88ff;">&#9679;</td>
+      <td class="name">Swarm Cluster</td>
+      <td class="desc">Splits into 3 mini-drones on death. Kill the children too.</td>
+    </tr>
+  </table>
+
+  <h2>Towers</h2>
+  <table>
+    <tr>
+      <th></th>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Cost</th>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#00ff88;">&#9650;</td>
+      <td class="name">Laser Turret</td>
+      <td class="desc">Fast fire rate, low damage per shot. Good all-rounder.</td>
+      <td class="cost">$50</td>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#ff6644;">&#9650;</td>
+      <td class="name">Missile Battery</td>
+      <td class="desc">Slow but devastating. Splash damage hits groups.</td>
+      <td class="cost">$75</td>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#44ccff;">&#9650;</td>
+      <td class="name">Cryo Emitter</td>
+      <td class="desc">Slows all nearby enemies. Low damage, high utility.</td>
+      <td class="cost">$60</td>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#ffcc00;">&#9650;</td>
+      <td class="name">Rail Gun</td>
+      <td class="desc">Extreme range and damage. Very slow fire rate.</td>
+      <td class="cost">$100</td>
+    </tr>
+    <tr>
+      <td class="icon" style="color:#cc44ff;">&#9650;</td>
+      <td class="name">Pulse Cannon</td>
+      <td class="desc">Shockwave hits everything in radius. Expensive.</td>
+      <td class="cost">$150</td>
+    </tr>
+  </table>
+
+  <h2>Tips</h2>
+  <p class="tip">
+    Click a build slot to place a tower. Click a placed tower to upgrade or sell it.
+    Towers need kills before they can upgrade (3 for tier 2, 5 for tier 3).
+    Cryo + Missile is a strong combo against groups.
+    Save credits for later waves -- they get harder.
+  </p>
+
+  <div class="back"><a href="/">&lt; Back to Earth Defense</a></div>
+</body>
+</html>

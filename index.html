@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Earth Defense</title>
   <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R76EMYFK8B"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZJFENG8Q18"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-R76EMYFK8B');
+    gtag('config', 'G-ZJFENG8Q18');
   </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -58,6 +58,29 @@
       font-size: 12px;
       color: #555555;
     }
+    .guide-link {
+      margin-top: 20px;
+    }
+    .guide-link a {
+      font-family: monospace;
+      font-size: 14px;
+      color: #00ffcc;
+      text-decoration: none;
+    }
+    .guide-link a:hover {
+      text-decoration: underline;
+    }
+    .version {
+      margin-top: 40px;
+      font-size: 11px;
+    }
+    .version a {
+      color: #444444;
+      text-decoration: none;
+    }
+    .version a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -66,6 +89,8 @@
     <p>Defend Earth from the alien invasion</p>
     <button onclick="launchGame()">LAUNCH GAME</button>
     <div class="hint">Opens in a 1024 x 768 window</div>
+    <div class="guide-link"><a href="/guide.html">Player Guide</a></div>
+    <div class="version"><a href="/changelog.html">v1.0.0</a></div>
   </div>
   <script>
     function launchGame() {
