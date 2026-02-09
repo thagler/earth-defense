@@ -85,7 +85,7 @@ export const TOWERS: Record<string, TowerConfig> = {
     name: 'Pulse Cannon',
     description: 'Shockwave emitter. Hits all enemies in radius.',
     baseCost: 150,
-    upgradeCosts: [150, 200],
+    upgradeCosts: [300, 500],
     sellRefundRate: 0.5,
     projectileSpeed: 0, // area effect
     color: '#cc44ff',
