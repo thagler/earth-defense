@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { getMapByLevel, TileType, TILE_SIZE, MAP_COLS, MAP_ROWS } from '../config/maps';
+import { getMapByLevel, TileType, TILE_SIZE } from '../config/maps';
 import { LEVELS, LevelConfig } from '../config/levels';
 import { TOWERS } from '../config/towers';
 import { TilemapRenderer } from '../systems/TilemapRenderer';
@@ -392,8 +392,11 @@ export class GameScene extends Phaser.Scene {
     let baseX = TILE_SIZE / 2;
     let baseY = TILE_SIZE / 2;
 
-    for (let row = 0; row < MAP_ROWS; row++) {
-      for (let col = 0; col < MAP_COLS; col++) {
+    const rows = mapConfig.grid.length;
+    const cols = mapConfig.grid[0]?.length ?? 0;
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
         const tile = mapConfig.grid[row][col];
         if (tile === TileType.Spawn) {
           spawnX = col * TILE_SIZE + TILE_SIZE / 2;

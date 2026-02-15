@@ -3,8 +3,6 @@ import {
   MapConfig,
   TileType,
   TILE_SIZE,
-  MAP_COLS,
-  MAP_ROWS,
 } from '../config/maps';
 
 /**
@@ -138,8 +136,11 @@ export class TilemapRenderer {
     const shadowOffset = 3;
     this.graphics.fillStyle(PATH_SHADOW_COLOR, 0.5);
 
-    for (let row = 0; row < MAP_ROWS; row++) {
-      for (let col = 0; col < MAP_COLS; col++) {
+    const rows = this.map.grid.length;
+    const cols = this.map.grid[0]?.length ?? 0;
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
         const tile = this.map.grid[row][col];
         if (
           tile === TileType.Path ||
@@ -163,8 +164,11 @@ export class TilemapRenderer {
    * Rectangle game objects so that pointer events can be wired up later.
    */
   private drawTiles(): void {
-    for (let row = 0; row < MAP_ROWS; row++) {
-      for (let col = 0; col < MAP_COLS; col++) {
+    const rows = this.map.grid.length;
+    const cols = this.map.grid[0]?.length ?? 0;
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
         const tileValue = this.map.grid[row][col] as TileType;
         const worldX = col * TILE_SIZE + TILE_SIZE / 2;
         const worldY = row * TILE_SIZE + TILE_SIZE / 2;
@@ -283,19 +287,22 @@ export class TilemapRenderer {
   private drawGridOverlay(): void {
     this.graphics.lineStyle(1, GRID_LINE_COLOR, GRID_LINE_ALPHA);
 
+    const rows = this.map.grid.length;
+    const cols = this.map.grid[0]?.length ?? 0;
+
     // Vertical lines
-    for (let col = 0; col <= MAP_COLS; col++) {
+    for (let col = 0; col <= cols; col++) {
       this.graphics.beginPath();
       this.graphics.moveTo(col * TILE_SIZE, 0);
-      this.graphics.lineTo(col * TILE_SIZE, MAP_ROWS * TILE_SIZE);
+      this.graphics.lineTo(col * TILE_SIZE, rows * TILE_SIZE);
       this.graphics.strokePath();
     }
 
     // Horizontal lines
-    for (let row = 0; row <= MAP_ROWS; row++) {
+    for (let row = 0; row <= rows; row++) {
       this.graphics.beginPath();
       this.graphics.moveTo(0, row * TILE_SIZE);
-      this.graphics.lineTo(MAP_COLS * TILE_SIZE, row * TILE_SIZE);
+      this.graphics.lineTo(cols * TILE_SIZE, row * TILE_SIZE);
       this.graphics.strokePath();
     }
   }
