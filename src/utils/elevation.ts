@@ -1,8 +1,15 @@
-import { DEPTH_BAND } from '../config/maps';
+import { DEPTH_BAND, ISO_TILE_HEIGHT } from '../config/maps';
 
 /** Calculate Phaser depth value using elevation-bucketed sorting. */
 export function calculateDepth(screenY: number, elevation: number): number {
   return elevation * DEPTH_BAND + screenY;
+}
+
+/** Calculate Phaser depth for TILE sprites using top-edge of diamond.
+ *  Tiles use top-edge depth so that entities standing on them always sort
+ *  in front (entities use calculateDepth based on actual screen Y). */
+export function calculateTileDepth(screenY: number, elevation: number): number {
+  return elevation * DEPTH_BAND + (screenY - ISO_TILE_HEIGHT / 2);
 }
 
 /** Effective tower range accounting for height advantage/disadvantage. */

@@ -8,7 +8,7 @@ import {
 } from '../config/maps';
 import { LEVELS } from '../config/levels';
 import { cartToIso, tileToWorld } from '../utils/coordinates';
-import { calculateDepth } from '../utils/elevation';
+import { calculateTileDepth } from '../utils/elevation';
 
 const HALF_W = ISO_TILE_WIDTH / 2;  // 64
 const HALF_H = ISO_TILE_HEIGHT / 2; // 32
@@ -96,7 +96,7 @@ export class TilemapRenderer {
 
         // Isometric screen position with elevation offset
         const { screenX, screenY } = cartToIso(col, row, elevation);
-        const depth = calculateDepth(screenY, elevation);
+        const depth = calculateTileDepth(screenY, elevation);
 
         // Resolve the texture key for this tile
         const textureKey = this.getTextureKey(tileValue);
@@ -300,7 +300,7 @@ export class TilemapRenderer {
 
       const cliffSprite = this.scene.add.sprite(cliffX, cliffY, cliffKey);
       // Cliff faces render just below the tile they belong to
-      const cliffDepth = calculateDepth(tileScreenY, 0) + step * 0.01;
+      const cliffDepth = calculateTileDepth(tileScreenY, 0) + step * 0.01;
       cliffSprite.setDepth(cliffDepth);
     }
   }
