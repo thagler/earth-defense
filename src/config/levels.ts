@@ -8,6 +8,7 @@ export interface LevelConfig {
   level: number;
   name: string;
   theme: string;
+  world: number;
   startingCredits: number;
   passiveIncomeRate: number; // credits per second
   lives: number;
@@ -21,6 +22,7 @@ export const LEVELS: LevelConfig[] = [
     level: 1,
     name: 'Desert Outpost',
     theme: 'desert',
+    world: 1,
     startingCredits: 200,
     passiveIncomeRate: 5,
     lives: 10,
@@ -35,6 +37,7 @@ export const LEVELS: LevelConfig[] = [
     level: 2,
     name: 'Coastal Base',
     theme: 'coastal',
+    world: 1,
     startingCredits: 200,
     passiveIncomeRate: 5,
     lives: 10,
@@ -51,6 +54,7 @@ export const LEVELS: LevelConfig[] = [
     level: 3,
     name: 'Mountain Pass',
     theme: 'mountain',
+    world: 1,
     startingCredits: 200,
     passiveIncomeRate: 5,
     lives: 10,
@@ -68,6 +72,7 @@ export const LEVELS: LevelConfig[] = [
     level: 4,
     name: 'Urban Ruins',
     theme: 'urban',
+    world: 1,
     startingCredits: 200,
     passiveIncomeRate: 5,
     lives: 10,
@@ -86,6 +91,7 @@ export const LEVELS: LevelConfig[] = [
     level: 5,
     name: 'Mothership Approach',
     theme: 'mothership',
+    world: 1,
     startingCredits: 200,
     passiveIncomeRate: 5,
     lives: 10,

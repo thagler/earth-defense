@@ -15,6 +15,12 @@ export const TILE_SIZE = 64;
 export const MAP_COLS = 16;
 export const MAP_ROWS = 12;
 
+export const ISO_TILE_WIDTH = 128;
+export const ISO_TILE_HEIGHT = 64;
+export const ELEVATION_PX = 16;
+export const DEPTH_BAND = 900;
+export const MAX_ELEVATION = 3;
+
 export enum TileType {
   Ground = 0,
   Path = 1,
@@ -31,8 +37,12 @@ export interface MapPoint {
 export interface MapConfig {
   level: number;
   name: string;
+  world: number;
   grid: number[][];
+  heightGrid: number[][];
   pathPoints: MapPoint[];
+  pathElevations: number[];
+  buildSlotElevations: number[];
 }
 
 // ---------------------------------------------------------------------------
@@ -386,38 +396,69 @@ const level5Path: MapPoint[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Helper function to create zero-filled grids for backwards compatibility
+// ---------------------------------------------------------------------------
+function createZeroHeightGrid(grid: number[][]): number[][] {
+  return grid.map(row => row.map(() => 0));
+}
+
+function createZeroElevations(length: number): number[] {
+  return Array(length).fill(0);
+}
+
+// ---------------------------------------------------------------------------
 // Exported map configurations
 // ---------------------------------------------------------------------------
 export const MAPS: MapConfig[] = [
   {
     level: 1,
     name: 'Desert Outpost',
+    world: 1,
     grid: level1Grid,
+    heightGrid: createZeroHeightGrid(level1Grid),
     pathPoints: level1Path,
+    pathElevations: createZeroElevations(level1Path.length),
+    buildSlotElevations: createZeroElevations(8),
   },
   {
     level: 2,
     name: 'Coastal Base',
+    world: 1,
     grid: level2Grid,
+    heightGrid: createZeroHeightGrid(level2Grid),
     pathPoints: level2Path,
+    pathElevations: createZeroElevations(level2Path.length),
+    buildSlotElevations: createZeroElevations(10),
   },
   {
     level: 3,
     name: 'Mountain Pass',
+    world: 1,
     grid: level3Grid,
+    heightGrid: createZeroHeightGrid(level3Grid),
     pathPoints: level3Path,
+    pathElevations: createZeroElevations(level3Path.length),
+    buildSlotElevations: createZeroElevations(12),
   },
   {
     level: 4,
     name: 'Urban Ruins',
+    world: 1,
     grid: level4Grid,
+    heightGrid: createZeroHeightGrid(level4Grid),
     pathPoints: level4Path,
+    pathElevations: createZeroElevations(level4Path.length),
+    buildSlotElevations: createZeroElevations(14),
   },
   {
     level: 5,
     name: 'Mothership Approach',
+    world: 1,
     grid: level5Grid,
+    heightGrid: createZeroHeightGrid(level5Grid),
     pathPoints: level5Path,
+    pathElevations: createZeroElevations(level5Path.length),
+    buildSlotElevations: createZeroElevations(16),
   },
 ];
 

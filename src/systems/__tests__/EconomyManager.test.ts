@@ -18,6 +18,7 @@ function createTestLevel(overrides: Partial<LevelConfig> = {}): LevelConfig {
     level: 1,
     name: 'Test Level',
     theme: 'test',
+    world: 1,
     startingCredits: 200,
     passiveIncomeRate: 5,
     lives: 10,
