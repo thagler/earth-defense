@@ -177,9 +177,26 @@ export class HUD extends Phaser.Events.EventEmitter {
 
   /**
    * Update the level name displayed in the top bar.
+   * Optionally include the world name.
    */
-  updateLevelName(level: number, name: string): void {
-    this.levelNameText.setText(`Level ${level}: ${name}`);
+  updateLevelName(level: number, name: string, worldName?: string): void {
+    if (worldName) {
+      this.levelNameText.setText(`${worldName} - Level ${level}: ${name}`);
+    } else {
+      this.levelNameText.setText(`Level ${level}: ${name}`);
+    }
+  }
+
+  /**
+   * Get the world name from world number.
+   */
+  private getWorldName(world: number): string {
+    const worldNames: Record<number, string> = {
+      1: 'Desert Outpost',
+      2: 'Urban Ruins',
+      3: 'Alien Terrain',
+    };
+    return worldNames[world] || '';
   }
 
   // -------------------------------------------------------------------

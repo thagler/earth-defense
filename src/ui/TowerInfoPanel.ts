@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { Tower, UPGRADE_KILLS_REQUIRED } from '../entities/Tower';
 import { TowerTier, TOWERS } from '../config/towers';
 import { SoundManager } from '../systems/SoundManager';
+import { getEffectiveRange } from '../utils/elevation';
 
 /**
  * TowerInfoPanel -- Floating info/action panel for a placed tower.
@@ -88,12 +89,15 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
     this.container.setScrollFactor(0);
     this.container.setDepth(TowerInfoPanel.DEPTH);
 
+    // Increase panel height slightly to accommodate new stats
+    const adjustedPanelH = panelH + 20;
+
     // ---- Panel background ----
     const bg = this.scene.add.rectangle(
       0,
       0,
       panelW,
-      panelH,
+      adjustedPanelH,
       TowerInfoPanel.BG_COLOR,
       TowerInfoPanel.BG_ALPHA,
     );
@@ -101,7 +105,7 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
     this.container.add(bg);
 
     // ---- Tower name ----
-    let lineY = -panelH / 2 + 20;
+    let lineY = -adjustedPanelH / 2 + 20;
     const nameText = this.scene.add.text(0, lineY, config.name, {
       fontFamily: TowerInfoPanel.FONT_FAMILY,
       fontSize: '14px',
@@ -125,11 +129,22 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
 
     // ---- Stats ----
     lineY += 24;
+
+    // Calculate effective range at ground level (elevation 0)
+    const towerElevation = (tower as any).elevation || 0;
+    const effectiveRangeAtGround = getEffectiveRange(tier.range, towerElevation, 0);
+
     const statsLines = [
       `DMG: ${tier.damage}`,
-      `RNG: ${tier.range}`,
+      `Base RNG: ${tier.range}`,
+      `Eff. RNG: ${Math.round(effectiveRangeAtGround)} @ ground`,
       `ROF: ${tier.fireRate}/s`,
     ];
+
+    // Show tower elevation if it has one
+    if (towerElevation > 0) {
+      statsLines.push(`Elevation: ${towerElevation}`);
+    }
 
     // Append special stats if applicable
     if (tier.splashRadius !== undefined && tier.splashRadius > 0) {
@@ -160,7 +175,7 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
     }
 
     // ---- Buttons area ----
-    const buttonY = panelH / 2 - 56;
+    const buttonY = adjustedPanelH / 2 - 56;
 
     // Upgrade button
     const isMaxTier = tierNum >= 3;
@@ -204,7 +219,7 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
     // Close button (top-right corner)
     const closeBg = this.scene.add.rectangle(
       panelW / 2 - 14,
-      -panelH / 2 + 14,
+      -adjustedPanelH / 2 + 14,
       20,
       20,
       0xff4444,
@@ -214,7 +229,7 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
     closeBg.setInteractive({ useHandCursor: true });
     this.container.add(closeBg);
 
-    const closeText = this.scene.add.text(panelW / 2 - 14, -panelH / 2 + 14, 'X', {
+    const closeText = this.scene.add.text(panelW / 2 - 14, -adjustedPanelH / 2 + 14, 'X', {
       fontFamily: TowerInfoPanel.FONT_FAMILY,
       fontSize: '12px',
       color: '#ff4444',
@@ -245,7 +260,7 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
 
         if (
           Math.abs(localX) > panelW / 2 ||
-          Math.abs(localY) > panelH / 2
+          Math.abs(localY) > adjustedPanelH / 2
         ) {
           this.hide();
         }

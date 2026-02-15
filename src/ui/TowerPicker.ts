@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TOWERS, TowerConfig } from '../config/towers';
 import { EconomyManager } from '../systems/EconomyManager';
 import { SoundManager } from '../systems/SoundManager';
+import { getElevationCostMultiplier } from '../utils/elevation';
 
 /**
  * Individual button state within the TowerPicker.
@@ -35,6 +36,7 @@ export class TowerPicker extends Phaser.Events.EventEmitter {
   private barBg: Phaser.GameObjects.Rectangle;
   private buttons: TowerButton[] = [];
   private selectedKey: string | null = null;
+  private selectedElevation: number = 0;
 
   // ---- Style constants ----
   private static readonly FONT_FAMILY = 'monospace';
@@ -104,15 +106,30 @@ export class TowerPicker extends Phaser.Events.EventEmitter {
    * Accepts either a raw credit number or an EconomyManager instance
    * (the manager's getCredits() method is called internally).
    */
-  updateAffordability(creditsOrManager: number | EconomyManager): void {
+  updateAffordability(creditsOrManager: number | EconomyManager, elevation?: number): void {
     const credits =
       typeof creditsOrManager === 'number'
         ? creditsOrManager
         : creditsOrManager.getCredits();
 
+    // Update selected elevation if provided
+    if (elevation !== undefined) {
+      this.selectedElevation = elevation;
+    }
+
     for (const btn of this.buttons) {
-      const canAfford = credits >= btn.config.baseCost;
+      // Calculate adjusted cost based on elevation
+      const elevationMultiplier = getElevationCostMultiplier(this.selectedElevation);
+      const adjustedCost = Math.ceil(btn.config.baseCost * elevationMultiplier);
+      const canAfford = credits >= adjustedCost;
       btn.affordable = canAfford;
+
+      // Update cost display with elevation adjustment
+      if (this.selectedElevation > 0) {
+        btn.costText.setText(`$${adjustedCost} (x${elevationMultiplier.toFixed(2)})`);
+      } else {
+        btn.costText.setText(`$${btn.config.baseCost}`);
+      }
 
       if (canAfford) {
         btn.colorSwatch.setAlpha(1);
