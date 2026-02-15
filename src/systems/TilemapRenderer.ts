@@ -118,14 +118,15 @@ export class TilemapRenderer {
           // Create an interactive zone with a diamond-shaped hit area
           const zone = this.scene.add.zone(screenX, screenY, ISO_TILE_WIDTH, ISO_TILE_HEIGHT);
 
-          // Diamond polygon vertices relative to zone's origin (0.5, 0.5).
-          // Since the zone's origin is at its center, local (0,0) in the hit area callback
-          // is at the zone's center. We need to define the diamond relative to center.
+          // Diamond polygon vertices in local coordinates.
+          // The hitAreaCallback receives local coords where (0,0) is the TOP-LEFT
+          // of the zone's bounding box, NOT the center. The zone is 128x64.
+          // We need a diamond centered at local (64, 32) - the box center.
           const diamondShape = new Phaser.Geom.Polygon([
-            new Phaser.Geom.Point(0, -HALF_H),         // top (center x, up by half-height)
-            new Phaser.Geom.Point(HALF_W, 0),          // right (right by half-width, center y)
-            new Phaser.Geom.Point(0, HALF_H),          // bottom (center x, down by half-height)
-            new Phaser.Geom.Point(-HALF_W, 0),         // left (left by half-width, center y)
+            new Phaser.Geom.Point(HALF_W, 0),              // top (center of top edge)
+            new Phaser.Geom.Point(ISO_TILE_WIDTH, HALF_H), // right (right edge, center y)
+            new Phaser.Geom.Point(HALF_W, ISO_TILE_HEIGHT), // bottom (center of bottom edge)
+            new Phaser.Geom.Point(0, HALF_H),               // left (left edge, center y)
           ]);
 
           zone.setInteractive({
