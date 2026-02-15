@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { TOWERS, TowerConfig, TowerTier } from '../config/towers';
 import { Projectile } from './Projectile';
 import { SoundManager } from '../systems/SoundManager';
+import { tileToWorld } from '../utils/coordinates';
+import { calculateDepth } from '../utils/elevation';
 
 const TILE_SIZE = 64;
 
@@ -17,15 +19,14 @@ export class Tower extends Phaser.GameObjects.Container {
   public readonly elevation: number;
 
   private towerBody: Phaser.GameObjects.Arc | Phaser.GameObjects.Sprite;
-  private rangeIndicator: Phaser.GameObjects.Arc;
+  private rangeIndicator: Phaser.GameObjects.Ellipse;
   private tierPips: Phaser.GameObjects.Arc[] = [];
   private fireCooldownRemaining: number = 0;
   private tilePos: { x: number; y: number };
 
   constructor(scene: Phaser.Scene, tileX: number, tileY: number, towerKey: string, elevation: number = 0) {
-    const worldX = tileX * TILE_SIZE + TILE_SIZE / 2;
-    const worldY = tileY * TILE_SIZE + TILE_SIZE / 2;
-    super(scene, worldX, worldY);
+    const worldPos = tileToWorld(tileX, tileY, elevation);
+    super(scene, worldPos.x, worldPos.y);
 
     this.towerKey = towerKey;
     this.config = TOWERS[towerKey];
@@ -39,8 +40,9 @@ export class Tower extends Phaser.GameObjects.Container {
     this.creditsSpent = this.config.baseCost;
 
     // -- Range indicator (behind the tower body) --
+    // Draw as ellipse for isometric foreshortening (width = 2*range, height = range for 50% Y compression)
     const tier = this.getCurrentTierStats();
-    this.rangeIndicator = scene.add.arc(0, 0, tier.range, 0, 360, false, 0xffffff, 0.08);
+    this.rangeIndicator = scene.add.ellipse(0, 0, tier.range * 2, tier.range, 0xffffff, 0.08);
     this.rangeIndicator.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(this.config.color).color, 0.25);
     this.rangeIndicator.setVisible(false);
     this.add(this.rangeIndicator);
@@ -78,6 +80,9 @@ export class Tower extends Phaser.GameObjects.Container {
     });
 
     scene.add.existing(this);
+
+    // Set depth using elevation-aware calculation
+    this.setDepth(calculateDepth(this.y, this.elevation));
   }
 
   /** Returns the stat block for the current tier (tiers are 1-indexed, array is 0-indexed). */
@@ -100,9 +105,9 @@ export class Tower extends Phaser.GameObjects.Container {
     this.creditsSpent += upgradeCost;
     this.currentTier++;
 
-    // Update range indicator to reflect new range
+    // Update range indicator to reflect new range (ellipse for isometric)
     const tier = this.getCurrentTierStats();
-    this.rangeIndicator.setRadius(tier.range);
+    (this.rangeIndicator as Phaser.GameObjects.Ellipse).setSize(tier.range * 2, tier.range);
 
     // Scale up the tower body slightly to visually indicate power growth
     const scale = 1 + (this.currentTier - 1) * 0.15;
