@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ISO_TILE_WIDTH, ISO_TILE_HEIGHT, MAX_ELEVATION, ELEVATION_PX } from '../config/maps';
+import { cartToIso } from '../utils/coordinates';
 
 /**
  * CameraController handles player input for camera panning in isometric view.
@@ -30,21 +31,32 @@ export class CameraController {
     this.scene = scene;
     this.camera = scene.cameras.main;
 
-    // Calculate map pixel dimensions for isometric projection
-    const mapPixelWidth = (cols + rows) * (ISO_TILE_WIDTH / 2);
-    const mapPixelHeight = (cols + rows) * (ISO_TILE_HEIGHT / 2) + (MAX_ELEVATION * ELEVATION_PX);
+    // Calculate actual map center by finding bounding box of corner tiles
+    const topCorner = cartToIso(0, 0, 0);
+    const rightCorner = cartToIso(cols - 1, 0, 0);
+    const bottomCorner = cartToIso(cols - 1, rows - 1, 0);
+    const leftCorner = cartToIso(0, rows - 1, 0);
 
-    // Set camera bounds with small margin to prevent showing empty space
+    const minX = Math.min(topCorner.screenX, rightCorner.screenX, bottomCorner.screenX, leftCorner.screenX);
+    const maxX = Math.max(topCorner.screenX, rightCorner.screenX, bottomCorner.screenX, leftCorner.screenX);
+    const minY = Math.min(topCorner.screenY, rightCorner.screenY, bottomCorner.screenY, leftCorner.screenY);
+    const maxY = Math.max(topCorner.screenY, rightCorner.screenY, bottomCorner.screenY, leftCorner.screenY);
+
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    // Calculate camera bounds from actual tile bounding box with margin and elevation offset
     const margin = 100;
+    const elevationOffset = MAX_ELEVATION * ELEVATION_PX;
     this.camera.setBounds(
-      -margin,
-      -margin,
-      mapPixelWidth + margin * 2,
-      mapPixelHeight + margin * 2
+      minX - margin,
+      minY - margin - elevationOffset,
+      (maxX - minX) + margin * 2,
+      (maxY - minY) + margin * 2 + elevationOffset
     );
 
-    // Center camera on the map
-    this.camera.centerOn(mapPixelWidth / 2, mapPixelHeight / 2);
+    // Center camera on the actual map center
+    this.camera.centerOn(centerX, centerY);
 
     // Setup input handlers
     this.setupKeyboardInput();
