@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ENEMIES, EnemyConfig } from '../config/enemies';
 import { PathFollower, Waypoint } from '../systems/PathFollower';
 import { SoundManager } from '../systems/SoundManager';
+import { calculateDepth } from '../utils/elevation';
 
 /**
  * Enemy is a Phaser Container that represents a single enemy unit on the map.
@@ -31,6 +32,9 @@ export class Enemy extends Phaser.GameObjects.Container {
   private baseSpeed: number;
   private currentSpeed: number;
   private pathFollower: PathFollower;
+
+  // ---- Elevation ----
+  public currentElevation: number = 0;
 
   // ---- Slow effect ----
   private slowFactor: number = 1; // 1 = full speed
@@ -269,6 +273,10 @@ export class Enemy extends Phaser.GameObjects.Container {
     // ---- Path following ----
     const newPos = this.pathFollower.update(this.x, this.y, this.currentSpeed, deltaSec);
     this.setPosition(newPos.x, newPos.y);
+
+    // ---- Update elevation and depth ----
+    this.currentElevation = newPos.elevation;
+    this.setDepth(calculateDepth(this.y, this.currentElevation));
 
     // ---- Check if reached end ----
     if (this.pathFollower.finished) {
