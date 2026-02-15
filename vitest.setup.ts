@@ -118,14 +118,34 @@ if (typeof globalThis.AudioContext === 'undefined') {
     createGain() {
       return {
         connect: () => {},
-        gain: { value: 1 },
+        gain: {
+          value: 1,
+          setValueAtTime: () => {},
+          linearRampToValueAtTime: () => {},
+          exponentialRampToValueAtTime: () => {},
+        },
       };
     }
     createBufferSource() {
       return {
         connect: () => {},
         start: () => {},
+        stop: () => {},
         buffer: null,
+        playbackRate: {
+          value: 1,
+          setValueAtTime: () => {},
+        },
+      };
+    }
+    createDynamicsCompressor() {
+      return {
+        connect: () => {},
+        threshold: { value: -50 },
+        knee: { value: 40 },
+        ratio: { value: 12 },
+        attack: { value: 0 },
+        release: { value: 0.25 },
       };
     }
     decodeAudioData() {
@@ -134,11 +154,19 @@ if (typeof globalThis.AudioContext === 'undefined') {
     close() {
       return Promise.resolve();
     }
+    resume() {
+      return Promise.resolve();
+    }
     get currentTime() {
       return 0;
     }
     get destination() {
-      return {};
+      return {
+        connect: () => {},
+      };
+    }
+    get state() {
+      return 'running';
     }
   };
 }
