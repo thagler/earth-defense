@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CameraController } from '../CameraController';
 import { ISO_TILE_WIDTH, ISO_TILE_HEIGHT, MAX_ELEVATION, ELEVATION_PX } from '../../config/maps';
+import { cartToIso } from '../../utils/coordinates';
 
 /**
  * Basic tests for CameraController.
@@ -53,17 +54,25 @@ describe('CameraController', () => {
     const rows = 12;
     new CameraController(mockScene, cols, rows);
 
-    const expectedWidth = (cols + rows) * (ISO_TILE_WIDTH / 2);
-    const expectedHeight = (cols + rows) * (ISO_TILE_HEIGHT / 2) + (MAX_ELEVATION * ELEVATION_PX);
+    // Calculate bounding box from corner tiles (same algorithm as implementation)
+    const topCorner = cartToIso(0, 0, 0);
+    const rightCorner = cartToIso(cols - 1, 0, 0);
+    const bottomCorner = cartToIso(cols - 1, rows - 1, 0);
+    const leftCorner = cartToIso(0, rows - 1, 0);
 
-    // Camera bounds should be set with margin
+    const minX = Math.min(topCorner.screenX, rightCorner.screenX, bottomCorner.screenX, leftCorner.screenX);
+    const maxX = Math.max(topCorner.screenX, rightCorner.screenX, bottomCorner.screenX, leftCorner.screenX);
+    const minY = Math.min(topCorner.screenY, rightCorner.screenY, bottomCorner.screenY, leftCorner.screenY);
+    const maxY = Math.max(topCorner.screenY, rightCorner.screenY, bottomCorner.screenY, leftCorner.screenY);
+
     const margin = 100;
+    const elevationOffset = MAX_ELEVATION * ELEVATION_PX;
 
     expect(mockCamera.setBounds).toHaveBeenCalledWith(
-      -margin,
-      -margin,
-      expectedWidth + margin * 2,
-      expectedHeight + margin * 2
+      minX - margin,
+      minY - margin - elevationOffset,
+      (maxX - minX) + margin * 2,
+      (maxY - minY) + margin * 2 + elevationOffset
     );
   });
 
@@ -72,16 +81,25 @@ describe('CameraController', () => {
     const rows = 14;
     new CameraController(mockScene, cols, rows);
 
-    const expectedWidth = (cols + rows) * (ISO_TILE_WIDTH / 2);
-    const expectedHeight = (cols + rows) * (ISO_TILE_HEIGHT / 2) + (MAX_ELEVATION * ELEVATION_PX);
+    // Calculate bounding box from corner tiles (same algorithm as implementation)
+    const topCorner = cartToIso(0, 0, 0);
+    const rightCorner = cartToIso(cols - 1, 0, 0);
+    const bottomCorner = cartToIso(cols - 1, rows - 1, 0);
+    const leftCorner = cartToIso(0, rows - 1, 0);
+
+    const minX = Math.min(topCorner.screenX, rightCorner.screenX, bottomCorner.screenX, leftCorner.screenX);
+    const maxX = Math.max(topCorner.screenX, rightCorner.screenX, bottomCorner.screenX, leftCorner.screenX);
+    const minY = Math.min(topCorner.screenY, rightCorner.screenY, bottomCorner.screenY, leftCorner.screenY);
+    const maxY = Math.max(topCorner.screenY, rightCorner.screenY, bottomCorner.screenY, leftCorner.screenY);
 
     const margin = 100;
+    const elevationOffset = MAX_ELEVATION * ELEVATION_PX;
 
     expect(mockCamera.setBounds).toHaveBeenCalledWith(
-      -margin,
-      -margin,
-      expectedWidth + margin * 2,
-      expectedHeight + margin * 2
+      minX - margin,
+      minY - margin - elevationOffset,
+      (maxX - minX) + margin * 2,
+      (maxY - minY) + margin * 2 + elevationOffset
     );
   });
 
@@ -90,9 +108,20 @@ describe('CameraController', () => {
     const rows = 12;
     new CameraController(mockScene, cols, rows);
 
-    const mapPixelWidth = (cols + rows) * (ISO_TILE_WIDTH / 2);
-    const mapPixelHeight = (cols + rows) * (ISO_TILE_HEIGHT / 2) + (MAX_ELEVATION * ELEVATION_PX);
+    // Calculate center from bounding box of corner tiles (same algorithm as implementation)
+    const topCorner = cartToIso(0, 0, 0);
+    const rightCorner = cartToIso(cols - 1, 0, 0);
+    const bottomCorner = cartToIso(cols - 1, rows - 1, 0);
+    const leftCorner = cartToIso(0, rows - 1, 0);
 
-    expect(mockCamera.centerOn).toHaveBeenCalledWith(mapPixelWidth / 2, mapPixelHeight / 2);
+    const minX = Math.min(topCorner.screenX, rightCorner.screenX, bottomCorner.screenX, leftCorner.screenX);
+    const maxX = Math.max(topCorner.screenX, rightCorner.screenX, bottomCorner.screenX, leftCorner.screenX);
+    const minY = Math.min(topCorner.screenY, rightCorner.screenY, bottomCorner.screenY, leftCorner.screenY);
+    const maxY = Math.max(topCorner.screenY, rightCorner.screenY, bottomCorner.screenY, leftCorner.screenY);
+
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    expect(mockCamera.centerOn).toHaveBeenCalledWith(centerX, centerY);
   });
 });
