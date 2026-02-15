@@ -143,69 +143,100 @@ export class MenuScene extends Phaser.Scene {
 
     // ---- Level select ----
     this.add
-      .text(width / 2, height * 0.55, 'Level Select', {
+      .text(width / 2, height * 0.52, 'Level Select', {
         fontSize: '18px',
         color: '#888888',
         fontFamily: 'monospace',
       })
       .setOrigin(0.5);
 
-    const buttonWidth = 140;
-    const buttonSpacing = 16;
-    const totalWidth = LEVELS.length * buttonWidth + (LEVELS.length - 1) * buttonSpacing;
-    const startX = width / 2 - totalWidth / 2 + buttonWidth / 2;
+    // Group levels by world
+    const worldGroups = [
+      { world: 1, name: 'Desert Outpost', color: 0x3a2f1a, textColor: '#d4b896' },
+      { world: 2, name: 'Urban Ruins', color: 0x1a1a2a, textColor: '#8899cc' },
+      { world: 3, name: 'Alien Terrain', color: 0x2a1a3a, textColor: '#cc88ff' },
+    ];
 
-    for (let i = 0; i < LEVELS.length; i++) {
-      const lvl = LEVELS[i];
-      const bx = startX + i * (buttonWidth + buttonSpacing);
-      const by = height * 0.64;
+    const buttonWidth = 90;
+    const buttonHeight = 40;
+    const buttonSpacing = 8;
+    const worldSpacingY = 80;
+    const startY = height * 0.58;
 
-      const buttonHeight = 48;
+    worldGroups.forEach((worldInfo, worldIndex) => {
+      const worldLevels = LEVELS.filter(lvl => lvl.world === worldInfo.world);
+      const worldY = startY + worldIndex * worldSpacingY;
 
-      // Background rectangle (interactive hit area)
-      const btnBg = this.add
-        .rectangle(bx, by, buttonWidth, buttonHeight, 0x222244)
-        .setInteractive({ useHandCursor: true });
+      // World section background
+      const sectionWidth = worldLevels.length * buttonWidth + (worldLevels.length - 1) * buttonSpacing + 20;
+      const sectionHeight = 62;
+      this.add
+        .rectangle(width / 2, worldY, sectionWidth, sectionHeight, worldInfo.color, 0.3)
+        .setStrokeStyle(1, worldInfo.color, 0.6);
 
-      // Centered label text (no background -- the rectangle handles that)
-      const btnLabel = this.add
-        .text(bx, by, `${lvl.level}. ${lvl.name}`, {
-          fontSize: '13px',
-          color: '#cccccc',
+      // World name header
+      this.add
+        .text(width / 2, worldY - 22, worldInfo.name, {
+          fontSize: '12px',
+          color: worldInfo.textColor,
           fontFamily: 'monospace',
-          align: 'center',
-          wordWrap: { width: buttonWidth - 16 },
+          fontStyle: 'bold',
         })
         .setOrigin(0.5);
 
-      btnBg.on('pointerover', () => {
-        btnLabel.setColor('#00ffcc');
-        this.tweens.add({
-          targets: [btnBg, btnLabel],
-          scaleX: 1.08,
-          scaleY: 1.08,
-          duration: 120,
-          ease: 'Back.easeOut',
+      // Level buttons for this world
+      const totalWidth = worldLevels.length * buttonWidth + (worldLevels.length - 1) * buttonSpacing;
+      const startX = width / 2 - totalWidth / 2 + buttonWidth / 2;
+
+      worldLevels.forEach((lvl, i) => {
+        const bx = startX + i * (buttonWidth + buttonSpacing);
+        const by = worldY + 8;
+
+        // Background rectangle (interactive hit area)
+        const btnBg = this.add
+          .rectangle(bx, by, buttonWidth, buttonHeight, 0x222244)
+          .setInteractive({ useHandCursor: true });
+
+        // Centered label text
+        const btnLabel = this.add
+          .text(bx, by, `${lvl.level}. ${lvl.name}`, {
+            fontSize: '11px',
+            color: '#cccccc',
+            fontFamily: 'monospace',
+            align: 'center',
+            wordWrap: { width: buttonWidth - 8 },
+          })
+          .setOrigin(0.5);
+
+        btnBg.on('pointerover', () => {
+          btnLabel.setColor('#00ffcc');
+          this.tweens.add({
+            targets: [btnBg, btnLabel],
+            scaleX: 1.06,
+            scaleY: 1.06,
+            duration: 120,
+            ease: 'Back.easeOut',
+          });
+        });
+        btnBg.on('pointerout', () => {
+          btnLabel.setColor('#cccccc');
+          this.tweens.add({
+            targets: [btnBg, btnLabel],
+            scaleX: 1,
+            scaleY: 1,
+            duration: 120,
+            ease: 'Quad.easeOut',
+          });
+        });
+        btnBg.on('pointerdown', () => {
+          this.scene.start('GameScene', { level: lvl.level });
         });
       });
-      btnBg.on('pointerout', () => {
-        btnLabel.setColor('#cccccc');
-        this.tweens.add({
-          targets: [btnBg, btnLabel],
-          scaleX: 1,
-          scaleY: 1,
-          duration: 120,
-          ease: 'Quad.easeOut',
-        });
-      });
-      btnBg.on('pointerdown', () => {
-        this.scene.start('GameScene', { level: lvl.level });
-      });
-    }
+    });
 
     // ---- Footer (version links to changelog) ----
     const versionText = this.add
-      .text(width / 2, height * 0.9, 'v1.0.1 -- Earth Defense', {
+      .text(width / 2, height * 0.95, 'v2.0.0 -- Earth Defense', {
         fontSize: '12px',
         color: '#444444',
         fontFamily: 'monospace',
