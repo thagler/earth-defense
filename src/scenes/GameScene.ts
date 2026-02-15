@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { getMapByLevel, TileType, TILE_SIZE } from '../config/maps';
+import { getMapByLevel, TileType } from '../config/maps';
 import { LEVELS, LevelConfig } from '../config/levels';
 import { TOWERS } from '../config/towers';
 import { TilemapRenderer } from '../systems/TilemapRenderer';
@@ -7,6 +7,7 @@ import { TowerManager } from '../systems/TowerManager';
 import { EnemySpawner } from '../systems/EnemySpawner';
 import { EconomyManager } from '../systems/EconomyManager';
 import { BackgroundRenderer } from '../systems/BackgroundRenderer';
+import { CameraController } from '../systems/CameraController';
 import { ParticleEffects } from '../systems/ParticleEffects';
 import { Tower } from '../entities/Tower';
 import { Enemy } from '../entities/Enemy';
@@ -14,6 +15,7 @@ import { HUD } from '../ui/HUD';
 import { TowerPicker } from '../ui/TowerPicker';
 import { TowerInfoPanel } from '../ui/TowerInfoPanel';
 import { SoundManager } from '../systems/SoundManager';
+import { cartToIso } from '../utils/coordinates';
 
 /**
  * GameScene -- the main gameplay scene that wires all systems together:
@@ -35,6 +37,7 @@ export class GameScene extends Phaser.Scene {
 
   // ---- Visual systems ----
   private backgroundRenderer: BackgroundRenderer | null = null;
+  private cameraController!: CameraController;
 
   // ---- UI ----
   private hud!: HUD;
@@ -89,6 +92,11 @@ export class GameScene extends Phaser.Scene {
     this.tilemapRenderer = new TilemapRenderer(this, mapConfig);
     this.tilemapRenderer.render();
 
+    // ---- Camera controller for isometric panning ----
+    const cols = mapConfig.grid[0]?.length ?? 16;
+    const rows = mapConfig.grid.length;
+    this.cameraController = new CameraController(this, cols, rows);
+
     // ---- Ambient glows at spawn and base ----
     this.setupAmbientGlows(mapConfig);
 
@@ -111,7 +119,14 @@ export class GameScene extends Phaser.Scene {
     this.hud.updateCredits(this.economyManager.getCredits());
     this.hud.updateLives(this.lives, this.maxLives);
     this.hud.updateEnemiesRemaining(this.totalEnemies);
-    this.hud.updateLevelName(this.levelConfig.level, this.levelConfig.name);
+    // World name lookup for HUD display
+    const worldNames: Record<number, string> = {
+      1: 'Desert Outpost',
+      2: 'Urban Ruins',
+      3: 'Alien Terrain',
+    };
+    const worldName = worldNames[this.levelConfig.world] ?? '';
+    this.hud.updateLevelName(this.levelConfig.level, this.levelConfig.name, worldName);
     this.towerPicker.updateAffordability(this.economyManager.getCredits());
 
     // ---- Build slot click handling ----
@@ -123,6 +138,9 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (this.gameOver || this.levelComplete) return;
+
+    // ---- Camera panning ----
+    this.cameraController.update(delta);
 
     // ---- Background animation ----
     this.backgroundRenderer?.update(delta);
@@ -384,13 +402,13 @@ export class GameScene extends Phaser.Scene {
 
   /**
    * Scan the map grid for spawn (3) and base (4) tile types, then
-   * add pulsing ambient glows at those positions via BackgroundRenderer.
+   * add pulsing ambient glows at those isometric positions via BackgroundRenderer.
    */
-  private setupAmbientGlows(mapConfig: { grid: number[][] }): void {
-    let spawnX = TILE_SIZE / 2;
-    let spawnY = TILE_SIZE / 2;
-    let baseX = TILE_SIZE / 2;
-    let baseY = TILE_SIZE / 2;
+  private setupAmbientGlows(mapConfig: { grid: number[][]; heightGrid: number[][] }): void {
+    let spawnCol = 0;
+    let spawnRow = 0;
+    let baseCol = 0;
+    let baseRow = 0;
 
     const rows = mapConfig.grid.length;
     const cols = mapConfig.grid[0]?.length ?? 0;
@@ -399,16 +417,25 @@ export class GameScene extends Phaser.Scene {
       for (let col = 0; col < cols; col++) {
         const tile = mapConfig.grid[row][col];
         if (tile === TileType.Spawn) {
-          spawnX = col * TILE_SIZE + TILE_SIZE / 2;
-          spawnY = row * TILE_SIZE + TILE_SIZE / 2;
+          spawnCol = col;
+          spawnRow = row;
         } else if (tile === TileType.Base) {
-          baseX = col * TILE_SIZE + TILE_SIZE / 2;
-          baseY = row * TILE_SIZE + TILE_SIZE / 2;
+          baseCol = col;
+          baseRow = row;
         }
       }
     }
 
-    this.backgroundRenderer?.createAmbientGlows(spawnX, spawnY, baseX, baseY);
+    // Convert tile positions to isometric world coordinates with elevation
+    const spawnElev = mapConfig.heightGrid[spawnRow]?.[spawnCol] ?? 0;
+    const baseElev = mapConfig.heightGrid[baseRow]?.[baseCol] ?? 0;
+    const spawnIso = cartToIso(spawnCol, spawnRow, spawnElev);
+    const baseIso = cartToIso(baseCol, baseRow, baseElev);
+
+    this.backgroundRenderer?.createAmbientGlows(
+      spawnIso.screenX, spawnIso.screenY,
+      baseIso.screenX, baseIso.screenY,
+    );
   }
 
   // -------------------------------------------------------------------
@@ -416,6 +443,7 @@ export class GameScene extends Phaser.Scene {
   // -------------------------------------------------------------------
 
   shutdown(): void {
+    this.cameraController?.destroy();
     this.towerManager?.destroy();
     this.enemySpawner?.destroy();
     this.economyManager?.removeAllListeners();
