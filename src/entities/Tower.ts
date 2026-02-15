@@ -39,13 +39,13 @@ export class Tower extends Phaser.GameObjects.Container {
     this.tilePos = { x: tileX, y: tileY };
     this.creditsSpent = this.config.baseCost;
 
-    // -- Range indicator (behind the tower body) --
+    // -- Range indicator (scene-level object so it renders above all tiles) --
     // Draw as ellipse for isometric foreshortening (width = 2*range, height = range for 50% Y compression)
     const tier = this.getCurrentTierStats();
-    this.rangeIndicator = scene.add.ellipse(0, 0, tier.range * 2, tier.range, 0xffffff, 0.08);
+    this.rangeIndicator = scene.add.ellipse(worldPos.x, worldPos.y, tier.range * 2, tier.range, 0xffffff, 0.08);
     this.rangeIndicator.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(this.config.color).color, 0.25);
     this.rangeIndicator.setVisible(false);
-    this.add(this.rangeIndicator);
+    this.rangeIndicator.setDepth(999);
 
     // -- Tower body (sprite if texture exists, fallback to colored circle) --
     const towerTextureKey = `tower-${this.towerKey}`;
@@ -276,6 +276,12 @@ export class Tower extends Phaser.GameObjects.Container {
       ease: 'Quad.easeOut',
       onComplete: () => ring.destroy(),
     });
+  }
+
+  /** Clean up scene-level objects not parented to this container. */
+  public destroy(fromScene?: boolean): void {
+    this.rangeIndicator.destroy();
+    super.destroy(fromScene);
   }
 
   /** Create / recreate the small pip dots that indicate the current tier. */
