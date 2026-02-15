@@ -4,6 +4,7 @@ import { Projectile } from './Projectile';
 import { SoundManager } from '../systems/SoundManager';
 import { tileToWorld } from '../utils/coordinates';
 import { calculateDepth } from '../utils/elevation';
+import { IsoDirection, snapToDirection, getSpriteKey } from '../utils/direction';
 
 const TILE_SIZE = 64;
 
@@ -23,6 +24,7 @@ export class Tower extends Phaser.GameObjects.Container {
   private tierPips: Phaser.GameObjects.Arc[] = [];
   private fireCooldownRemaining: number = 0;
   private tilePos: { x: number; y: number };
+  private currentDirection: IsoDirection = IsoDirection.S;
 
   constructor(scene: Phaser.Scene, tileX: number, tileY: number, towerKey: string, elevation: number = 0) {
     const worldPos = tileToWorld(tileX, tileY, elevation);
@@ -51,11 +53,11 @@ export class Tower extends Phaser.GameObjects.Container {
     const shadow = scene.add.ellipse(0, 0, 48, 24, 0x000000, 0.15);
     this.add(shadow);
 
-    // -- Tower body (sprite if texture exists, fallback to colored circle) --
+    // -- Tower body (sprite if directional texture exists, fallback to colored circle) --
     // Bottom-align: shift body up by half height so visual bottom sits at tile center
-    const towerTextureKey = `tower-${this.towerKey}`;
-    if (scene.textures.exists(towerTextureKey)) {
-      const sprite = scene.add.sprite(0, -20, towerTextureKey);
+    const { key: initialSpriteKey } = getSpriteKey('tower-' + this.towerKey, IsoDirection.S);
+    if (scene.textures.exists(initialSpriteKey)) {
+      const sprite = scene.add.sprite(0, -20, initialSpriteKey);
       sprite.setDisplaySize(40, 40);
       this.towerBody = sprite;
     } else {
@@ -162,9 +164,6 @@ export class Tower extends Phaser.GameObjects.Container {
     const cooldownPeriod = 1000 / tier.fireRate; // ms between shots
 
     this.fireCooldownRemaining -= delta;
-    if (this.fireCooldownRemaining > 0) {
-      return;
-    }
 
     // Find enemies in range
     const inRange = enemies.filter((enemy) => {
@@ -174,6 +173,24 @@ export class Tower extends Phaser.GameObjects.Container {
     });
 
     if (inRange.length === 0) {
+      // No targets -- revert to default south facing
+      this.updateFacing(IsoDirection.S);
+      return;
+    }
+
+    // Select primary target for facing (even area-effect towers face toward a target)
+    const target = this.selectTarget(inRange);
+
+    // Update tower facing toward target
+    if (target) {
+      const dx = target.x - this.x;
+      const dy = target.y - this.y;
+      const newDir = snapToDirection(dx, dy);
+      this.updateFacing(newDir);
+    }
+
+    // Don't fire while on cooldown (but still track target above)
+    if (this.fireCooldownRemaining > 0) {
       return;
     }
 
@@ -185,8 +202,6 @@ export class Tower extends Phaser.GameObjects.Container {
     }
 
     // ---- Projectile towers ----
-    // "First" targeting: enemy furthest along the path (highest pathProgress)
-    const target = this.selectTarget(inRange);
     if (!target) return;
 
     this.fireCooldownRemaining = cooldownPeriod;
@@ -196,6 +211,21 @@ export class Tower extends Phaser.GameObjects.Container {
   // ----------------------------------------------------------------
   //  Private helpers
   // ----------------------------------------------------------------
+
+  /**
+   * Updates the tower body sprite to face the given direction.
+   * Only applies when the body is a Sprite (not an Arc fallback).
+   */
+  private updateFacing(newDir: IsoDirection): void {
+    if (newDir === this.currentDirection) return;
+    // Skip direction changes if the body is a fallback Arc (no directional textures)
+    if (this.towerBody instanceof Phaser.GameObjects.Arc) return;
+
+    this.currentDirection = newDir;
+    const { key, flipX } = getSpriteKey('tower-' + this.towerKey, newDir);
+    (this.towerBody as Phaser.GameObjects.Sprite).setTexture(key);
+    (this.towerBody as Phaser.GameObjects.Sprite).setFlipX(flipX);
+  }
 
   /**
    * Selects the enemy closest to reaching the base.

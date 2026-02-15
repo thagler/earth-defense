@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { DIRECTION_SUFFIXES } from '../utils/direction';
+import { TOWERS } from '../config/towers';
 
 /**
  * AssetGenerator -- Programmatically generates all game sprite textures
@@ -25,295 +27,627 @@ export class AssetGenerator {
   }
 
   // -------------------------------------------------------------------
-  //  Tower textures (40x40)
+  //  Tower textures (40x40) -- 4 directional variants per tower type
+  //  Naming: tower-{type}-{direction}  (e.g., tower-laser-south)
+  //  Directions: south, southwest, west, northwest
+  //  The other 4 directions (SE, E, NE, N) are achieved via flipX at runtime.
   // -------------------------------------------------------------------
 
   private static generateTowerTextures(scene: Phaser.Scene): void {
     const SIZE = 40;
+    const cx = SIZE / 2;
+    const cy = SIZE / 2;
 
-    // ---- tower-laser: Green hexagonal shape with inner glow ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
-      const r = 17;
+    const towerKeys = Object.keys(TOWERS);
+    for (const towerKey of towerKeys) {
+      const config = TOWERS[towerKey];
+      const colorInt = Phaser.Display.Color.HexStringToColor(config.color).color;
+      // Darker shade for far-side / shadow details
+      const darkColor = Phaser.Display.Color.ValueToColor(colorInt).darken(30).color;
+      // Lighter shade for near-side highlights
+      const lightColor = Phaser.Display.Color.ValueToColor(colorInt).lighten(30).color;
 
-      // Outer glow
-      g.fillStyle(0x00ff88, 0.15);
-      g.fillCircle(cx, cy, 19);
+      for (const dir of DIRECTION_SUFFIXES) {
+        const g = scene.make.graphics({} as any);
+        const textureKey = `tower-${towerKey}-${dir}`;
 
-      // Hexagon shape
-      g.fillStyle(0x00cc66, 1);
-      g.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i - Math.PI / 6;
-        const px = cx + r * Math.cos(angle);
-        const py = cy + r * Math.sin(angle);
-        if (i === 0) g.moveTo(px, py);
-        else g.lineTo(px, py);
+        switch (towerKey) {
+          case 'laser':
+            AssetGenerator.drawLaserTower(g, cx, cy, SIZE, dir, colorInt, darkColor, lightColor);
+            break;
+          case 'missile':
+            AssetGenerator.drawMissileTower(g, cx, cy, SIZE, dir, colorInt, darkColor, lightColor);
+            break;
+          case 'cryo':
+            AssetGenerator.drawCryoTower(g, cx, cy, SIZE, dir, colorInt, darkColor, lightColor);
+            break;
+          case 'railgun':
+            AssetGenerator.drawRailgunTower(g, cx, cy, SIZE, dir, colorInt, darkColor, lightColor);
+            break;
+          case 'pulse':
+            AssetGenerator.drawPulseTower(g, cx, cy, SIZE, dir, colorInt, darkColor, lightColor);
+            break;
+        }
+
+        g.generateTexture(textureKey, SIZE, SIZE);
+        g.destroy();
       }
-      g.closePath();
-      g.fillPath();
+    }
+  }
 
-      // Hexagon border
-      g.lineStyle(2, 0x00ff88, 0.9);
-      g.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i - Math.PI / 6;
-        const px = cx + r * Math.cos(angle);
-        const py = cy + r * Math.sin(angle);
-        if (i === 0) g.moveTo(px, py);
-        else g.lineTo(px, py);
-      }
-      g.closePath();
-      g.strokePath();
+  // -------------------------------------------------------------------
+  //  Directional tower drawing helpers
+  // -------------------------------------------------------------------
 
-      // Inner glow circle
-      g.fillStyle(0x00ff88, 0.3);
-      g.fillCircle(cx, cy, 8);
-      g.fillStyle(0xaaffcc, 0.5);
-      g.fillCircle(cx, cy, 4);
+  /**
+   * Laser: Cylindrical base with a rotating turret barrel on top.
+   * The barrel points in the facing direction.
+   */
+  private static drawLaserTower(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number, _size: number,
+    dir: string, color: number, dark: number, light: number,
+  ): void {
+    // -- Cylindrical base (ellipse at bottom) --
+    g.fillStyle(dark, 1);
+    g.fillEllipse(cx, cy + 6, 26, 14);
+    g.lineStyle(1, 0x000000, 0.8);
+    g.strokeEllipse(cx, cy + 6, 26, 14);
 
-      // Tech lines radiating from center
-      g.lineStyle(1, 0x00ff88, 0.4);
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i;
+    // -- Base body cylinder (rectangle + top ellipse) --
+    g.fillStyle(color, 1);
+    g.fillRect(cx - 12, cy - 4, 24, 12);
+    g.fillEllipse(cx, cy - 4, 26, 12);
+    g.lineStyle(1, 0x000000, 0.6);
+    g.strokeEllipse(cx, cy - 4, 26, 12);
+
+    // -- Turret barrel --
+    g.lineStyle(1, 0x000000, 0.8);
+    switch (dir) {
+      case 'south':
+        // Barrel points down toward camera
+        g.fillStyle(light, 1);
+        g.fillRect(cx - 3, cy - 4, 6, 16);
+        g.strokeRect(cx - 3, cy - 4, 6, 16);
+        // Lens glow at tip
+        g.fillStyle(0xffffff, 0.9);
+        g.fillCircle(cx, cy + 12, 3);
+        g.fillStyle(color, 0.6);
+        g.fillCircle(cx, cy + 12, 2);
+        break;
+      case 'southwest':
+        // Barrel angled down-left
+        g.fillStyle(light, 1);
         g.beginPath();
-        g.moveTo(cx + 5 * Math.cos(angle), cy + 5 * Math.sin(angle));
-        g.lineTo(cx + 12 * Math.cos(angle), cy + 12 * Math.sin(angle));
+        g.moveTo(cx - 2, cy - 5);
+        g.lineTo(cx + 2, cy - 3);
+        g.lineTo(cx - 8, cy + 11);
+        g.lineTo(cx - 12, cy + 9);
+        g.closePath();
+        g.fillPath();
         g.strokePath();
-      }
-
-      g.generateTexture('tower-laser', SIZE, SIZE);
-      g.destroy();
-    }
-
-    // ---- tower-missile: Red/orange octagonal shape with launcher detail ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
-      const r = 17;
-
-      // Outer glow
-      g.fillStyle(0xff6644, 0.15);
-      g.fillCircle(cx, cy, 19);
-
-      // Octagon shape
-      g.fillStyle(0xcc4422, 1);
-      g.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const angle = (Math.PI / 4) * i - Math.PI / 8;
-        const px = cx + r * Math.cos(angle);
-        const py = cy + r * Math.sin(angle);
-        if (i === 0) g.moveTo(px, py);
-        else g.lineTo(px, py);
-      }
-      g.closePath();
-      g.fillPath();
-
-      // Octagon border
-      g.lineStyle(2, 0xff6644, 0.9);
-      g.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const angle = (Math.PI / 4) * i - Math.PI / 8;
-        const px = cx + r * Math.cos(angle);
-        const py = cy + r * Math.sin(angle);
-        if (i === 0) g.moveTo(px, py);
-        else g.lineTo(px, py);
-      }
-      g.closePath();
-      g.strokePath();
-
-      // Launcher tube detail (two rectangles)
-      g.fillStyle(0xff8866, 0.8);
-      g.fillRect(cx - 3, cy - 12, 6, 8);
-      g.fillStyle(0xff4422, 0.9);
-      g.fillRect(cx - 2, cy - 14, 4, 4);
-
-      // Inner targeting circle
-      g.lineStyle(1, 0xff8844, 0.6);
-      g.strokeCircle(cx, cy, 6);
-      g.fillStyle(0xff6644, 0.5);
-      g.fillCircle(cx, cy, 3);
-
-      g.generateTexture('tower-missile', SIZE, SIZE);
-      g.destroy();
-    }
-
-    // ---- tower-cryo: Blue diamond shape with frost crystals ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
-
-      // Outer glow
-      g.fillStyle(0x44ccff, 0.12);
-      g.fillCircle(cx, cy, 19);
-
-      // Diamond shape
-      g.fillStyle(0x2288cc, 1);
-      g.beginPath();
-      g.moveTo(cx, cy - 18);
-      g.lineTo(cx + 16, cy);
-      g.lineTo(cx, cy + 18);
-      g.lineTo(cx - 16, cy);
-      g.closePath();
-      g.fillPath();
-
-      // Diamond border
-      g.lineStyle(2, 0x44ccff, 0.9);
-      g.beginPath();
-      g.moveTo(cx, cy - 18);
-      g.lineTo(cx + 16, cy);
-      g.lineTo(cx, cy + 18);
-      g.lineTo(cx - 16, cy);
-      g.closePath();
-      g.strokePath();
-
-      // Frost crystal lines (cross pattern)
-      g.lineStyle(1, 0x88ddff, 0.7);
-      // Vertical
-      g.beginPath();
-      g.moveTo(cx, cy - 12);
-      g.lineTo(cx, cy + 12);
-      g.strokePath();
-      // Horizontal
-      g.beginPath();
-      g.moveTo(cx - 10, cy);
-      g.lineTo(cx + 10, cy);
-      g.strokePath();
-      // Diagonal frost branches
-      g.lineStyle(1, 0x88ddff, 0.4);
-      g.beginPath();
-      g.moveTo(cx - 2, cy - 8);
-      g.lineTo(cx - 6, cy - 10);
-      g.strokePath();
-      g.beginPath();
-      g.moveTo(cx + 2, cy - 8);
-      g.lineTo(cx + 6, cy - 10);
-      g.strokePath();
-      g.beginPath();
-      g.moveTo(cx - 2, cy + 8);
-      g.lineTo(cx - 6, cy + 10);
-      g.strokePath();
-      g.beginPath();
-      g.moveTo(cx + 2, cy + 8);
-      g.lineTo(cx + 6, cy + 10);
-      g.strokePath();
-
-      // Center glow
-      g.fillStyle(0xaaeeff, 0.5);
-      g.fillCircle(cx, cy, 4);
-
-      g.generateTexture('tower-cryo', SIZE, SIZE);
-      g.destroy();
-    }
-
-    // ---- tower-railgun: Yellow angular shape with barrel detail ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
-
-      // Outer glow
-      g.fillStyle(0xffcc00, 0.12);
-      g.fillCircle(cx, cy, 19);
-
-      // Angular chevron / arrow shape
-      g.fillStyle(0xcc9900, 1);
-      g.beginPath();
-      g.moveTo(cx, cy - 17);
-      g.lineTo(cx + 14, cy - 6);
-      g.lineTo(cx + 14, cy + 10);
-      g.lineTo(cx, cy + 17);
-      g.lineTo(cx - 14, cy + 10);
-      g.lineTo(cx - 14, cy - 6);
-      g.closePath();
-      g.fillPath();
-
-      // Border
-      g.lineStyle(2, 0xffcc00, 0.9);
-      g.beginPath();
-      g.moveTo(cx, cy - 17);
-      g.lineTo(cx + 14, cy - 6);
-      g.lineTo(cx + 14, cy + 10);
-      g.lineTo(cx, cy + 17);
-      g.lineTo(cx - 14, cy + 10);
-      g.lineTo(cx - 14, cy - 6);
-      g.closePath();
-      g.strokePath();
-
-      // Barrel detail (long vertical line from center upward)
-      g.lineStyle(3, 0xffdd44, 0.9);
-      g.beginPath();
-      g.moveTo(cx, cy + 2);
-      g.lineTo(cx, cy - 14);
-      g.strokePath();
-
-      // Barrel tip
-      g.fillStyle(0xffee66, 0.9);
-      g.fillRect(cx - 3, cy - 16, 6, 4);
-
-      // Energy core
-      g.fillStyle(0xffcc00, 0.6);
-      g.fillCircle(cx, cy + 4, 5);
-      g.fillStyle(0xffee88, 0.8);
-      g.fillCircle(cx, cy + 4, 2);
-
-      g.generateTexture('tower-railgun', SIZE, SIZE);
-      g.destroy();
-    }
-
-    // ---- tower-pulse: Purple circular shape with energy ring ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
-
-      // Outer glow
-      g.fillStyle(0xcc44ff, 0.12);
-      g.fillCircle(cx, cy, 19);
-
-      // Main circle
-      g.fillStyle(0x9922cc, 1);
-      g.fillCircle(cx, cy, 16);
-
-      // Circle border
-      g.lineStyle(2, 0xcc44ff, 0.9);
-      g.strokeCircle(cx, cy, 16);
-
-      // Energy ring (concentric)
-      g.lineStyle(2, 0xdd66ff, 0.6);
-      g.strokeCircle(cx, cy, 11);
-
-      // Inner energy ring
-      g.lineStyle(1, 0xee88ff, 0.4);
-      g.strokeCircle(cx, cy, 7);
-
-      // Center core
-      g.fillStyle(0xcc44ff, 0.7);
-      g.fillCircle(cx, cy, 5);
-      g.fillStyle(0xee99ff, 0.8);
-      g.fillCircle(cx, cy, 2);
-
-      // Energy arc marks
-      g.lineStyle(2, 0xdd66ff, 0.5);
-      for (let i = 0; i < 4; i++) {
-        const angle = (Math.PI / 2) * i + Math.PI / 4;
-        const x1 = cx + 12 * Math.cos(angle);
-        const y1 = cy + 12 * Math.sin(angle);
-        const x2 = cx + 16 * Math.cos(angle);
-        const y2 = cy + 16 * Math.sin(angle);
+        // Lens glow
+        g.fillStyle(0xffffff, 0.9);
+        g.fillCircle(cx - 10, cy + 10, 2.5);
+        break;
+      case 'west':
+        // Barrel points left (side profile)
+        g.fillStyle(light, 1);
+        g.fillRect(cx - 18, cy - 6, 18, 5);
+        g.strokeRect(cx - 18, cy - 6, 18, 5);
+        // Lens glow
+        g.fillStyle(0xffffff, 0.9);
+        g.fillCircle(cx - 18, cy - 4, 2.5);
+        break;
+      case 'northwest':
+        // Barrel angled up-left (rear view)
+        g.fillStyle(dark, 1);
         g.beginPath();
-        g.moveTo(x1, y1);
-        g.lineTo(x2, y2);
+        g.moveTo(cx - 2, cy - 3);
+        g.lineTo(cx + 2, cy - 5);
+        g.lineTo(cx - 8, cy - 15);
+        g.lineTo(cx - 12, cy - 13);
+        g.closePath();
+        g.fillPath();
         g.strokePath();
-      }
-
-      g.generateTexture('tower-pulse', SIZE, SIZE);
-      g.destroy();
+        // Back detail: vent lines on base
+        g.lineStyle(1, dark, 0.6);
+        g.beginPath();
+        g.moveTo(cx - 8, cy + 2);
+        g.lineTo(cx + 8, cy + 2);
+        g.strokePath();
+        g.beginPath();
+        g.moveTo(cx - 6, cy + 5);
+        g.lineTo(cx + 6, cy + 5);
+        g.strokePath();
+        break;
     }
+
+    // -- Near-side highlight edge --
+    g.lineStyle(1, light, 0.3);
+    g.beginPath();
+    g.arc(cx, cy - 4, 12, Math.PI * 0.7, Math.PI * 1.3);
+    g.strokePath();
+  }
+
+  /**
+   * Missile: Boxy launcher platform with 2-4 angled launch tubes.
+   * Tubes face the direction. Stocky, industrial silhouette.
+   */
+  private static drawMissileTower(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number, _size: number,
+    dir: string, color: number, dark: number, light: number,
+  ): void {
+    // -- Platform base (boxy) --
+    g.fillStyle(dark, 1);
+    g.fillRect(cx - 13, cy + 2, 26, 10);
+    g.lineStyle(1, 0x000000, 0.8);
+    g.strokeRect(cx - 13, cy + 2, 26, 10);
+
+    // -- Main body box --
+    g.fillStyle(color, 1);
+    g.fillRect(cx - 11, cy - 8, 22, 14);
+    g.lineStyle(1, 0x000000, 0.7);
+    g.strokeRect(cx - 11, cy - 8, 22, 14);
+
+    // -- Launch tubes based on direction --
+    switch (dir) {
+      case 'south': {
+        // Tubes angled toward camera (down), 2 tubes visible
+        g.fillStyle(light, 1);
+        g.fillRect(cx - 8, cy - 10, 5, 18);
+        g.fillRect(cx + 3, cy - 10, 5, 18);
+        g.lineStyle(1, 0x000000, 0.8);
+        g.strokeRect(cx - 8, cy - 10, 5, 18);
+        g.strokeRect(cx + 3, cy - 10, 5, 18);
+        // Tube openings (dark circles at tips)
+        g.fillStyle(0x111111, 0.9);
+        g.fillCircle(cx - 5.5, cy + 8, 2);
+        g.fillCircle(cx + 5.5, cy + 8, 2);
+        // Exhaust vents on top
+        g.fillStyle(dark, 0.6);
+        g.fillRect(cx - 3, cy - 12, 6, 3);
+        break;
+      }
+      case 'southwest': {
+        // Tubes angled down-left, 3-quarter view
+        g.fillStyle(light, 1);
+        // Left-front tube
+        g.beginPath();
+        g.moveTo(cx - 4, cy - 10);
+        g.lineTo(cx, cy - 10);
+        g.lineTo(cx - 10, cy + 6);
+        g.lineTo(cx - 14, cy + 4);
+        g.closePath();
+        g.fillPath();
+        g.lineStyle(1, 0x000000, 0.7);
+        g.strokePath();
+        // Right-rear tube (partially visible)
+        g.fillStyle(color, 0.8);
+        g.beginPath();
+        g.moveTo(cx + 2, cy - 10);
+        g.lineTo(cx + 6, cy - 10);
+        g.lineTo(cx - 4, cy + 6);
+        g.lineTo(cx - 8, cy + 4);
+        g.closePath();
+        g.fillPath();
+        g.strokePath();
+        // Side armor plate
+        g.fillStyle(dark, 0.5);
+        g.fillRect(cx + 7, cy - 6, 4, 10);
+        break;
+      }
+      case 'west': {
+        // Side profile: tubes pointing left
+        g.fillStyle(light, 1);
+        // Top tube
+        g.fillRect(cx - 18, cy - 10, 16, 4);
+        g.lineStyle(1, 0x000000, 0.7);
+        g.strokeRect(cx - 18, cy - 10, 16, 4);
+        // Bottom tube
+        g.fillStyle(color, 0.9);
+        g.fillRect(cx - 16, cy - 5, 14, 4);
+        g.strokeRect(cx - 16, cy - 5, 14, 4);
+        // Tube openings
+        g.fillStyle(0x111111, 0.9);
+        g.fillCircle(cx - 18, cy - 8, 1.5);
+        g.fillCircle(cx - 16, cy - 3, 1.5);
+        // Side armor detail
+        g.lineStyle(1, dark, 0.5);
+        g.beginPath();
+        g.moveTo(cx + 6, cy - 6);
+        g.lineTo(cx + 6, cy + 6);
+        g.strokePath();
+        break;
+      }
+      case 'northwest': {
+        // Rear three-quarter: back vents visible, tubes angle up-left
+        g.fillStyle(dark, 0.9);
+        // Rear tube stub
+        g.beginPath();
+        g.moveTo(cx - 4, cy - 8);
+        g.lineTo(cx, cy - 10);
+        g.lineTo(cx - 8, cy - 16);
+        g.lineTo(cx - 12, cy - 14);
+        g.closePath();
+        g.fillPath();
+        g.lineStyle(1, 0x000000, 0.7);
+        g.strokePath();
+        // Back vents (horizontal lines)
+        g.fillStyle(0x111111, 0.5);
+        g.fillRect(cx - 8, cy, 16, 2);
+        g.fillRect(cx - 6, cy + 4, 12, 2);
+        g.fillRect(cx - 4, cy + 8, 8, 2);
+        // Back panel
+        g.lineStyle(1, dark, 0.4);
+        g.beginPath();
+        g.moveTo(cx - 9, cy - 6);
+        g.lineTo(cx + 9, cy - 6);
+        g.strokePath();
+        break;
+      }
+    }
+  }
+
+  /**
+   * Cryo: Hemisphere dome on a platform base. Frost vents/nozzles face direction.
+   * Cool-toned highlights. Pipes run from base to dome.
+   */
+  private static drawCryoTower(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number, _size: number,
+    dir: string, color: number, dark: number, light: number,
+  ): void {
+    // -- Platform base --
+    g.fillStyle(dark, 1);
+    g.fillRect(cx - 14, cy + 4, 28, 8);
+    g.lineStyle(1, 0x000000, 0.7);
+    g.strokeRect(cx - 14, cy + 4, 28, 8);
+
+    // -- Dome body (half-ellipse) --
+    g.fillStyle(color, 0.9);
+    g.beginPath();
+    g.arc(cx, cy, 13, Math.PI, 0);
+    g.lineTo(cx + 13, cy + 4);
+    g.lineTo(cx - 13, cy + 4);
+    g.closePath();
+    g.fillPath();
+    g.lineStyle(1, 0x000000, 0.7);
+    g.strokePath();
+
+    // -- Dome highlight (glass-like sheen) --
+    g.fillStyle(light, 0.25);
+    g.beginPath();
+    g.arc(cx - 3, cy - 3, 8, Math.PI * 1.1, Math.PI * 1.7);
+    g.lineTo(cx - 3, cy - 3);
+    g.closePath();
+    g.fillPath();
+
+    // -- Frost pipes from base to dome --
+    g.lineStyle(2, dark, 0.7);
+    g.beginPath();
+    g.moveTo(cx - 8, cy + 4);
+    g.lineTo(cx - 8, cy - 2);
+    g.strokePath();
+    g.beginPath();
+    g.moveTo(cx + 8, cy + 4);
+    g.lineTo(cx + 8, cy - 2);
+    g.strokePath();
+
+    // -- Frost vents based on direction --
+    g.lineStyle(1, 0x000000, 0.6);
+    switch (dir) {
+      case 'south': {
+        // Nozzle pointing down/forward
+        g.fillStyle(light, 0.9);
+        g.beginPath();
+        g.moveTo(cx - 4, cy + 1);
+        g.lineTo(cx + 4, cy + 1);
+        g.lineTo(cx + 6, cy + 10);
+        g.lineTo(cx - 6, cy + 10);
+        g.closePath();
+        g.fillPath();
+        g.strokePath();
+        // Frost particles (dots)
+        g.fillStyle(0xffffff, 0.6);
+        g.fillCircle(cx - 3, cy + 13, 1.5);
+        g.fillCircle(cx + 2, cy + 14, 1);
+        g.fillCircle(cx + 4, cy + 12, 1.5);
+        break;
+      }
+      case 'southwest': {
+        // Nozzle angled down-left
+        g.fillStyle(light, 0.9);
+        g.beginPath();
+        g.moveTo(cx - 3, cy);
+        g.lineTo(cx + 1, cy + 3);
+        g.lineTo(cx - 9, cy + 12);
+        g.lineTo(cx - 13, cy + 9);
+        g.closePath();
+        g.fillPath();
+        g.strokePath();
+        // Frost particles
+        g.fillStyle(0xffffff, 0.6);
+        g.fillCircle(cx - 14, cy + 11, 1.5);
+        g.fillCircle(cx - 11, cy + 14, 1);
+        break;
+      }
+      case 'west': {
+        // Nozzle pointing left (side profile)
+        g.fillStyle(light, 0.9);
+        g.beginPath();
+        g.moveTo(cx - 6, cy - 3);
+        g.lineTo(cx - 6, cy + 3);
+        g.lineTo(cx - 16, cy + 5);
+        g.lineTo(cx - 16, cy - 5);
+        g.closePath();
+        g.fillPath();
+        g.strokePath();
+        // Frost particles
+        g.fillStyle(0xffffff, 0.6);
+        g.fillCircle(cx - 18, cy - 2, 1.5);
+        g.fillCircle(cx - 17, cy + 3, 1);
+        g.fillCircle(cx - 19, cy + 1, 1);
+        break;
+      }
+      case 'northwest': {
+        // Nozzle angled up-left (rear view, nozzle partially hidden)
+        g.fillStyle(dark, 0.8);
+        g.beginPath();
+        g.moveTo(cx - 2, cy - 2);
+        g.lineTo(cx + 2, cy);
+        g.lineTo(cx - 8, cy - 12);
+        g.lineTo(cx - 12, cy - 10);
+        g.closePath();
+        g.fillPath();
+        g.strokePath();
+        // Back detail: coolant tank
+        g.fillStyle(dark, 0.6);
+        g.fillEllipse(cx + 4, cy + 2, 8, 6);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeEllipse(cx + 4, cy + 2, 8, 6);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Rail Gun: Long barrel on a tracked base. Barrel is the dominant feature.
+   * Power coils/rings along the barrel. Most elongated silhouette.
+   */
+  private static drawRailgunTower(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number, _size: number,
+    dir: string, color: number, dark: number, light: number,
+  ): void {
+    // -- Tracked base (two small rectangles) --
+    g.fillStyle(0x333333, 1);
+    g.fillRect(cx - 14, cy + 6, 10, 6);
+    g.fillRect(cx + 4, cy + 6, 10, 6);
+    g.lineStyle(1, 0x000000, 0.8);
+    g.strokeRect(cx - 14, cy + 6, 10, 6);
+    g.strokeRect(cx + 4, cy + 6, 10, 6);
+    // Track treads
+    g.lineStyle(1, 0x555555, 0.6);
+    for (let i = 0; i < 3; i++) {
+      g.beginPath();
+      g.moveTo(cx - 13 + i * 4, cy + 7);
+      g.lineTo(cx - 13 + i * 4, cy + 11);
+      g.strokePath();
+      g.beginPath();
+      g.moveTo(cx + 5 + i * 4, cy + 7);
+      g.lineTo(cx + 5 + i * 4, cy + 11);
+      g.strokePath();
+    }
+
+    // -- Turret housing (compact box on base) --
+    g.fillStyle(color, 1);
+    g.fillRect(cx - 8, cy - 4, 16, 12);
+    g.lineStyle(1, 0x000000, 0.7);
+    g.strokeRect(cx - 8, cy - 4, 16, 12);
+
+    // -- Energy core in housing --
+    g.fillStyle(light, 0.6);
+    g.fillCircle(cx, cy + 2, 4);
+    g.fillStyle(0xffffff, 0.5);
+    g.fillCircle(cx, cy + 2, 2);
+
+    // -- Barrel based on direction --
+    switch (dir) {
+      case 'south': {
+        // Barrel pointing down (toward camera) -- foreshortened
+        g.fillStyle(light, 1);
+        g.fillRect(cx - 3, cy - 6, 6, 18);
+        g.lineStyle(1, 0x000000, 0.8);
+        g.strokeRect(cx - 3, cy - 6, 6, 18);
+        // Power coils (horizontal lines across barrel)
+        g.lineStyle(2, color, 0.7);
+        g.beginPath(); g.moveTo(cx - 4, cy - 2); g.lineTo(cx + 4, cy - 2); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 4, cy + 3); g.lineTo(cx + 4, cy + 3); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 4, cy + 8); g.lineTo(cx + 4, cy + 8); g.strokePath();
+        // Muzzle flash dot
+        g.fillStyle(0xffffff, 0.8);
+        g.fillCircle(cx, cy + 12, 2);
+        break;
+      }
+      case 'southwest': {
+        // Barrel angled down-left
+        g.fillStyle(light, 1);
+        g.beginPath();
+        g.moveTo(cx - 1, cy - 6);
+        g.lineTo(cx + 3, cy - 4);
+        g.lineTo(cx - 13, cy + 10);
+        g.lineTo(cx - 17, cy + 8);
+        g.closePath();
+        g.fillPath();
+        g.lineStyle(1, 0x000000, 0.8);
+        g.strokePath();
+        // Power coils along barrel
+        g.lineStyle(2, color, 0.6);
+        g.beginPath(); g.moveTo(cx - 3, cy); g.lineTo(cx + 1, cy + 2); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 7, cy + 4); g.lineTo(cx - 3, cy + 6); g.strokePath();
+        break;
+      }
+      case 'west': {
+        // Barrel pointing left -- full length side profile (dominant feature)
+        g.fillStyle(light, 1);
+        g.fillRect(cx - 19, cy - 6, 24, 5);
+        g.lineStyle(1, 0x000000, 0.8);
+        g.strokeRect(cx - 19, cy - 6, 24, 5);
+        // Power coils (vertical rings)
+        g.lineStyle(2, color, 0.6);
+        g.beginPath(); g.moveTo(cx - 4, cy - 7); g.lineTo(cx - 4, cy); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 9, cy - 7); g.lineTo(cx - 9, cy); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 14, cy - 7); g.lineTo(cx - 14, cy); g.strokePath();
+        // Muzzle
+        g.fillStyle(0xffffff, 0.8);
+        g.fillCircle(cx - 19, cy - 4, 2);
+        break;
+      }
+      case 'northwest': {
+        // Barrel angled up-left (rear view)
+        g.fillStyle(dark, 0.9);
+        g.beginPath();
+        g.moveTo(cx - 1, cy - 4);
+        g.lineTo(cx + 3, cy - 6);
+        g.lineTo(cx - 11, cy - 18);
+        g.lineTo(cx - 15, cy - 16);
+        g.closePath();
+        g.fillPath();
+        g.lineStyle(1, 0x000000, 0.8);
+        g.strokePath();
+        // Power coils
+        g.lineStyle(2, color, 0.5);
+        g.beginPath(); g.moveTo(cx - 3, cy - 8); g.lineTo(cx + 1, cy - 10); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 7, cy - 12); g.lineTo(cx - 3, cy - 14); g.strokePath();
+        // Rear exhaust port
+        g.fillStyle(0x111111, 0.6);
+        g.fillCircle(cx + 2, cy + 4, 3);
+        g.lineStyle(1, dark, 0.4);
+        g.strokeCircle(cx + 2, cy + 4, 3);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Pulse: Concentric ring emitter on a central pylon. Antenna spokes radiate outward.
+   * Rings tilt to face the target direction. Sci-fi glow from center.
+   */
+  private static drawPulseTower(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number, _size: number,
+    dir: string, color: number, dark: number, light: number,
+  ): void {
+    // -- Central pylon (vertical column) --
+    g.fillStyle(dark, 1);
+    g.fillRect(cx - 4, cy - 8, 8, 18);
+    g.lineStyle(1, 0x000000, 0.7);
+    g.strokeRect(cx - 4, cy - 8, 8, 18);
+
+    // -- Pylon cap --
+    g.fillStyle(color, 1);
+    g.fillEllipse(cx, cy - 8, 14, 8);
+    g.lineStyle(1, 0x000000, 0.6);
+    g.strokeEllipse(cx, cy - 8, 14, 8);
+
+    // -- Center energy core --
+    g.fillStyle(color, 0.7);
+    g.fillCircle(cx, cy - 6, 4);
+    g.fillStyle(0xffffff, 0.6);
+    g.fillCircle(cx, cy - 6, 2);
+
+    // -- Antenna spokes (4 directions, always visible) --
+    g.lineStyle(2, color, 0.5);
+    const spokeLen = 8;
+    for (let i = 0; i < 4; i++) {
+      const angle = (Math.PI / 2) * i + Math.PI / 4;
+      g.beginPath();
+      g.moveTo(cx + 5 * Math.cos(angle), cy - 6 + 5 * Math.sin(angle));
+      g.lineTo(cx + (5 + spokeLen) * Math.cos(angle), cy - 6 + (5 + spokeLen) * Math.sin(angle));
+      g.strokePath();
+    }
+
+    // -- Emitter rings based on direction (tilted perspective) --
+    g.lineStyle(2, light, 0.5);
+    switch (dir) {
+      case 'south': {
+        // Rings face camera: wide ellipses
+        g.strokeEllipse(cx, cy - 2, 28, 10);
+        g.lineStyle(1, color, 0.4);
+        g.strokeEllipse(cx, cy + 2, 34, 12);
+        // Glow downward
+        g.fillStyle(color, 0.2);
+        g.fillEllipse(cx, cy + 6, 20, 8);
+        break;
+      }
+      case 'southwest': {
+        // Rings tilted toward down-left (drawn as manual rotated ellipses)
+        AssetGenerator.strokeRotatedEllipse(g, cx - 4, cy, 14, 7, -30);
+        g.lineStyle(1, color, 0.3);
+        AssetGenerator.strokeRotatedEllipse(g, cx - 6, cy + 3, 18, 8, -30);
+        // Glow
+        g.fillStyle(color, 0.15);
+        g.fillCircle(cx - 8, cy + 6, 6);
+        break;
+      }
+      case 'west': {
+        // Rings tilted to face left (narrow vertical ellipses)
+        g.strokeEllipse(cx - 6, cy - 4, 10, 22);
+        g.lineStyle(1, color, 0.3);
+        g.strokeEllipse(cx - 10, cy - 4, 12, 26);
+        // Glow left
+        g.fillStyle(color, 0.15);
+        g.fillCircle(cx - 12, cy - 4, 5);
+        break;
+      }
+      case 'northwest': {
+        // Rings tilted up-left (rear view, drawn as manual rotated ellipses)
+        AssetGenerator.strokeRotatedEllipse(g, cx - 4, cy - 8, 14, 7, 30);
+        g.lineStyle(1, color, 0.3);
+        AssetGenerator.strokeRotatedEllipse(g, cx - 6, cy - 11, 18, 8, 30);
+        // Back detail: power conduit
+        g.fillStyle(dark, 0.5);
+        g.fillRect(cx - 2, cy + 2, 4, 8);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeRect(cx - 2, cy + 2, 4, 8);
+        break;
+      }
+    }
+
+    // -- Base mounting ring --
+    g.lineStyle(1, dark, 0.6);
+    g.strokeEllipse(cx, cy + 10, 22, 8);
+  }
+
+  /**
+   * Draws a rotated ellipse outline using manual path points.
+   * Phaser Graphics lacks a native rotated ellipse method, so we approximate
+   * with 24 line segments around the ellipse perimeter.
+   */
+  private static strokeRotatedEllipse(
+    g: Phaser.GameObjects.Graphics,
+    ecx: number, ecy: number,
+    rx: number, ry: number,
+    angleDeg: number,
+    segments: number = 24,
+  ): void {
+    const angleRad = Phaser.Math.DegToRad(angleDeg);
+    const cosA = Math.cos(angleRad);
+    const sinA = Math.sin(angleRad);
+
+    g.beginPath();
+    for (let i = 0; i <= segments; i++) {
+      const t = (i / segments) * Math.PI * 2;
+      const px = rx * Math.cos(t);
+      const py = ry * Math.sin(t);
+      // Rotate point by angle
+      const sx = ecx + px * cosA - py * sinA;
+      const sy = ecy + px * sinA + py * cosA;
+      if (i === 0) {
+        g.moveTo(sx, sy);
+      } else {
+        g.lineTo(sx, sy);
+      }
+    }
+    g.closePath();
+    g.strokePath();
   }
 
   // -------------------------------------------------------------------
