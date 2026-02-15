@@ -24,6 +24,11 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
   // ---- Click-away listener reference ----
   private clickAwayHandler: ((pointer: Phaser.Input.Pointer) => void) | null = null;
 
+  // ---- Interactive elements tracking ----
+  // Interactive elements must be placed directly on scene with scrollFactor(0)
+  // instead of as container children to work correctly when camera is scrolled
+  private interactiveElements: Phaser.GameObjects.GameObject[] = [];
+
   // ---- Style constants ----
   private static readonly FONT_FAMILY = 'monospace';
   private static readonly LABEL_COLOR = '#00ffcc';
@@ -217,24 +222,31 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
     );
 
     // Close button (top-right corner)
+    // Place directly on scene with scrollFactor(0) for correct input handling
+    const closeBgX = px + panelW / 2 - 14;
+    const closeBgY = py - adjustedPanelH / 2 + 14;
     const closeBg = this.scene.add.rectangle(
-      panelW / 2 - 14,
-      -adjustedPanelH / 2 + 14,
+      closeBgX,
+      closeBgY,
       20,
       20,
       0xff4444,
       0.3,
     );
     closeBg.setStrokeStyle(1, 0xff4444, 0.6);
+    closeBg.setScrollFactor(0);
+    closeBg.setDepth(TowerInfoPanel.DEPTH);
     closeBg.setInteractive({ useHandCursor: true });
-    this.container.add(closeBg);
+    this.interactiveElements.push(closeBg);
 
-    const closeText = this.scene.add.text(panelW / 2 - 14, -adjustedPanelH / 2 + 14, 'X', {
+    const closeText = this.scene.add.text(closeBgX, closeBgY, 'X', {
       fontFamily: TowerInfoPanel.FONT_FAMILY,
       fontSize: '12px',
       color: '#ff4444',
     });
     closeText.setOrigin(0.5);
+    closeText.setScrollFactor(0);
+    closeText.setDepth(TowerInfoPanel.DEPTH);
     this.container.add(closeText);
 
     closeBg.on('pointerover', () => closeBg.setFillStyle(0xff4444, 0.5));
@@ -279,6 +291,12 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
       this.clickAwayHandler = null;
     }
 
+    // Clean up interactive elements
+    for (const element of this.interactiveElements) {
+      element.destroy();
+    }
+    this.interactiveElements = [];
+
     if (this.container) {
       this.container.destroy(true);
       this.container = null;
@@ -319,6 +337,8 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
 
   /**
    * Create a clickable button within the info panel.
+   * Interactive backgrounds are placed directly on scene with scrollFactor(0).
+   * Non-interactive text labels remain in the container.
    */
   private createPanelButton(
     x: number,
@@ -332,18 +352,26 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
     const btnWidth = 170;
     const btnHeight = 26;
 
+    // Calculate screen position (container position + local offset)
+    const screenX = this.container.x + x;
+    const screenY = this.container.y + y;
+
+    // Place button background directly on scene for correct input handling
     const btnBg = this.scene.add.rectangle(
-      x,
-      y,
+      screenX,
+      screenY,
       btnWidth,
       btnHeight,
       enabled ? 0x00ffcc : 0x444466,
       enabled ? 0.15 : 0.1,
     );
     btnBg.setStrokeStyle(1, enabled ? 0x00ffcc : 0x444466, enabled ? 0.6 : 0.3);
+    btnBg.setScrollFactor(0);
+    btnBg.setDepth(TowerInfoPanel.DEPTH);
 
     if (enabled) {
       btnBg.setInteractive({ useHandCursor: true });
+      this.interactiveElements.push(btnBg);
 
       btnBg.on('pointerover', () => {
         btnBg.setFillStyle(0x00ffcc, 0.3);
@@ -359,8 +387,10 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
         sm?.play('ui-click');
         callback();
       });
+    } else {
+      // Non-interactive buttons still need to be destroyed with the panel
+      this.interactiveElements.push(btnBg);
     }
-    this.container.add(btnBg);
 
     const btnText = this.scene.add.text(x, y, label, {
       fontFamily: TowerInfoPanel.FONT_FAMILY,
