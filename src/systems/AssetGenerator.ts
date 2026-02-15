@@ -1020,9 +1020,9 @@ export class AssetGenerator {
 
     // World-themed color palettes
     const WORLD_PALETTES = {
-      1: { ground: 0x2a1f0a, path: 0x3a2f1a, build: 0x2e3a1e, accent: 0x88aa44 }, // Desert
-      2: { ground: 0x1a1a2a, path: 0x2a2a3a, build: 0x2a2a3e, accent: 0x4488cc }, // Urban
-      3: { ground: 0x1a0a2a, path: 0x2a1a3a, build: 0x2a1e3a, accent: 0xaa44ff }, // Alien
+      1: { ground: 0x2a1f0a, path: 0x3a2f1a, build: 0x3a4a2a, accent: 0x88aa44 }, // Desert
+      2: { ground: 0x1a1a2a, path: 0x2a2a3a, build: 0x2e3a4e, accent: 0x4488cc }, // Urban
+      3: { ground: 0x1a0a2a, path: 0x2a1a3a, build: 0x3a2a4e, accent: 0xaa44ff }, // Alien
     };
 
     // Generate tiles for each world
@@ -1064,9 +1064,10 @@ export class AssetGenerator {
         g.closePath();
         g.fillPath();
 
-        // Add subtle border for definition
+        // Add subtle border for definition (reduced alpha for ground tiles)
         const borderColor = color - 0x101010;
-        g.lineStyle(1, borderColor, 0.5);
+        const borderAlpha = tileName === 'ground' ? 0.15 : 0.5;
+        g.lineStyle(1, borderColor, borderAlpha);
         g.beginPath();
         g.moveTo(64, 0);
         g.lineTo(128, 32);
@@ -1074,6 +1075,47 @@ export class AssetGenerator {
         g.lineTo(0, 32);
         g.closePath();
         g.strokePath();
+
+        // Build slots: add accent-colored stroke and corner markers for visibility
+        if (tileName === 'build') {
+          // Accent-colored outline
+          g.lineStyle(1.5, palette.accent, 0.4);
+          g.beginPath();
+          g.moveTo(64, 0);
+          g.lineTo(128, 32);
+          g.lineTo(64, 64);
+          g.lineTo(0, 32);
+          g.closePath();
+          g.strokePath();
+
+          // Corner markers at diamond vertices (small lines extending outward)
+          const markerLength = 8;
+          g.lineStyle(2, palette.accent, 0.5);
+
+          // Top vertex (64, 0)
+          g.beginPath();
+          g.moveTo(64, 0);
+          g.lineTo(64, -markerLength);
+          g.strokePath();
+
+          // Right vertex (128, 32)
+          g.beginPath();
+          g.moveTo(128, 32);
+          g.lineTo(128 + markerLength, 32);
+          g.strokePath();
+
+          // Bottom vertex (64, 64)
+          g.beginPath();
+          g.moveTo(64, 64);
+          g.lineTo(64, 64 + markerLength);
+          g.strokePath();
+
+          // Left vertex (0, 32)
+          g.beginPath();
+          g.moveTo(0, 32);
+          g.lineTo(-markerLength, 32);
+          g.strokePath();
+        }
 
         // Generate texture with world prefix
         const textureKey = worldId === 1 ? `iso-tile-${tileName}` : `iso-tile-${tileName}-w${worldId}`;
