@@ -277,10 +277,14 @@
       const grid = level.grid;
       const elevation = level.elevation;
 
-      // Center the isometric rendering
+      // Isomer renders the grid ABOVE the origin point, so place the origin
+      // near the bottom of the canvas to center the map visually.
+      const rows = grid.length;
+      const cols = grid[0].length;
       iso = new Isomer(canvas, {
         originX: canvas.width / 2,
-        originY: canvas.height / 2 - 100,
+        originY: canvas.height * 0.85,
+        scale: Math.min(50, 800 / Math.max(cols, rows)),
       });
 
       // Render tiles as isometric prisms from back to front, bottom to top

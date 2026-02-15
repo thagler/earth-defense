@@ -21,6 +21,7 @@ export class AssetGenerator {
     AssetGenerator.generateEnemyTextures(scene);
     AssetGenerator.generateTileTextures(scene);
     AssetGenerator.generateProjectileTextures(scene);
+    AssetGenerator.generateIsoDiamondTiles(scene);
   }
 
   // -------------------------------------------------------------------
@@ -1004,6 +1005,54 @@ export class AssetGenerator {
       g.fillCircle(cx, cy, 1.5);
 
       g.generateTexture('projectile-railgun', SIZE, SIZE);
+      g.destroy();
+    }
+  }
+
+  // -------------------------------------------------------------------
+  //  Isometric diamond tile textures (128x64)
+  // -------------------------------------------------------------------
+
+  private static generateIsoDiamondTiles(scene: Phaser.Scene): void {
+    const ISO_WIDTH = 128;
+    const ISO_HEIGHT = 64;
+
+    // Color mapping from TilemapRenderer
+    const tileColors: Record<string, number> = {
+      ground: 0x1a1a2e,
+      path: 0x2a2a3e,
+      build: 0x2e3a2e,
+      spawn: 0x44ff44,
+      base: 0xff4444,
+    };
+
+    const tileNames: Array<keyof typeof tileColors> = ['ground', 'path', 'build', 'spawn', 'base'];
+
+    for (const tileName of tileNames) {
+      const g = scene.make.graphics({} as any);
+      const color = tileColors[tileName];
+
+      // Draw diamond shape
+      g.fillStyle(color, 1);
+      g.beginPath();
+      g.moveTo(64, 0);
+      g.lineTo(128, 32);
+      g.lineTo(64, 64);
+      g.lineTo(0, 32);
+      g.closePath();
+      g.fillPath();
+
+      // Add a subtle border for definition
+      g.lineStyle(1, color + 0x222222, 0.3);
+      g.beginPath();
+      g.moveTo(64, 0);
+      g.lineTo(128, 32);
+      g.lineTo(64, 64);
+      g.lineTo(0, 32);
+      g.closePath();
+      g.strokePath();
+
+      g.generateTexture(`iso-tile-${tileName}`, ISO_WIDTH, ISO_HEIGHT);
       g.destroy();
     }
   }

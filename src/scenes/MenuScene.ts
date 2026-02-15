@@ -136,6 +136,11 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('GameScene', { level: 1 });
     });
 
+    // ---- P key shortcut for IsoPreviewScene ----
+    this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.P)?.on('down', () => {
+      this.scene.start('IsoPreviewScene', { level: 1 });
+    });
+
     // ---- Level select ----
     this.add
       .text(width / 2, height * 0.55, 'Level Select', {
