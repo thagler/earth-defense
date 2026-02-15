@@ -60,12 +60,12 @@ export function snapToDirection(dx: number, dy: number): IsoDirection {
   const degrees = (angle * 180 / Math.PI + 360) % 360;
 
   // Divide into 8 sectors of 45 degrees each
-  // East (0°) = sector 0, Southeast (45°) = sector 1, South (90°) = sector 2, etc.
   // Offset by 22.5° so each direction is centered in its sector
-  const sector = Math.round((degrees + 22.5) / 45) % 8;
+  // Then round to get sector index 0-7
+  const sector = Math.round(degrees / 45) % 8;
 
   // Map sectors to IsoDirection enum:
-  // Sector 0 (E) → E=6, Sector 1 (SE) → SE=7, Sector 2 (S) → S=0, etc.
+  // Sector 0 (E, 0°) → E=6, Sector 1 (SE, 45°) → SE=7, Sector 2 (S, 90°) → S=0, etc.
   const sectorToDirection = [
     IsoDirection.E,   // 0: East (0°)
     IsoDirection.SE,  // 1: Southeast (45°)
