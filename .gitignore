@@ -5,3 +5,4 @@ dist/
 *.png
 !public/og-image.png
 .playwright-mcp/
+.worktrees/
