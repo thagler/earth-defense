@@ -44,6 +44,9 @@ export class HUD extends Phaser.Events.EventEmitter {
   // ---- Overlay container (level complete / game over) ----
   private overlayContainer: Phaser.GameObjects.Container | null = null;
 
+  // ---- Interactive elements outside container (for proper click handling) ----
+  private overlayInteractiveElements: Phaser.GameObjects.GameObject[] = [];
+
   // ---- Mute toggle button ----
   private muteButton: Phaser.GameObjects.Text;
 
@@ -320,7 +323,11 @@ export class HUD extends Phaser.Events.EventEmitter {
   }
 
   /**
-   * Create a clickable text button inside an overlay container.
+   * Create a clickable text button for an overlay.
+   *
+   * The button background (btnBg) is created as a scene-level object with its
+   * own scrollFactor(0) and depth to avoid the Phaser Container input bug.
+   * The text label (btnText) remains in the container for visual grouping.
    */
   private createOverlayButton(
     container: Phaser.GameObjects.Container,
@@ -331,11 +338,17 @@ export class HUD extends Phaser.Events.EventEmitter {
   ): void {
     const centerX = 512;
 
+    // Create button background as a scene-level object (NOT a container child)
     const btnBg = this.scene.add.rectangle(centerX + offsetX, y, 140, 36, 0x00ffcc, 0.15);
     btnBg.setStrokeStyle(1, 0x00ffcc, 0.8);
+    btnBg.setScrollFactor(0);
+    btnBg.setDepth(container.depth + 0.1);
     btnBg.setInteractive({ useHandCursor: true });
-    container.add(btnBg);
 
+    // Track for cleanup
+    this.overlayInteractiveElements.push(btnBg);
+
+    // Text label stays in container (non-interactive)
     const btnText = this.scene.add.text(centerX + offsetX, y, label, {
       fontFamily: HUD.FONT_FAMILY,
       fontSize: '16px',
@@ -363,6 +376,12 @@ export class HUD extends Phaser.Events.EventEmitter {
       this.overlayContainer.destroy(true);
       this.overlayContainer = null;
     }
+
+    // Destroy all interactive elements that were placed outside the container
+    for (const element of this.overlayInteractiveElements) {
+      element.destroy();
+    }
+    this.overlayInteractiveElements = [];
   }
 
   /**
