@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import Phaser from 'phaser';
 import { ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from '../../config/maps';
+import { calculateDepth, calculateTileDepth } from '../../utils/elevation';
 
 /**
  * Tests for TilemapRenderer build slot zone polygon hit detection.
@@ -119,6 +120,49 @@ describe('TilemapRenderer', () => {
       expect(
         Phaser.Geom.Polygon.Contains(diamondShape, 20, 60)
       ).toBe(false);
+    });
+  });
+
+  describe('depth sorting at tile boundaries', () => {
+    it('enemy between two tiles has depth above both tiles', () => {
+      // Enemy at screenY midway between tile (5,5) center and tile (6,5) center
+      const tile55_centerY = (5 + 5) * 32; // 320
+      const tile65_centerY = (6 + 5) * 32; // 352
+      const enemyScreenY = (tile55_centerY + tile65_centerY) / 2; // 336
+
+      const tile55_depth = calculateTileDepth(tile55_centerY, 0);
+      const tile65_depth = calculateTileDepth(tile65_centerY, 0);
+      const enemy_depth = calculateDepth(enemyScreenY, 0);
+
+      expect(enemy_depth).toBeGreaterThan(tile55_depth);
+      expect(enemy_depth).toBeGreaterThan(tile65_depth);
+    });
+
+    it('enemy at tile diamond top edge still sorts above tile', () => {
+      // Enemy just barely inside tile (6,5) diamond top vertex
+      const tile65_centerY = (6 + 5) * 32; // 352
+      const HALF_H = 32;
+      const enemyAtTopEdge = tile65_centerY - HALF_H + 1; // 321
+
+      const tile65_depth = calculateTileDepth(tile65_centerY, 0);
+      const enemy_depth = calculateDepth(enemyAtTopEdge, 0);
+
+      expect(enemy_depth).toBeGreaterThan(tile65_depth);
+    });
+
+    it('tiles at same elevation maintain correct relative ordering', () => {
+      const tile55_depth = calculateTileDepth((5 + 5) * 32, 0);
+      const tile65_depth = calculateTileDepth((6 + 5) * 32, 0);
+      const tile75_depth = calculateTileDepth((7 + 5) * 32, 0);
+
+      expect(tile55_depth).toBeLessThan(tile65_depth);
+      expect(tile65_depth).toBeLessThan(tile75_depth);
+    });
+
+    it('enemy at elevation 0 sorts behind elevation 1 tile', () => {
+      const enemyDepth = calculateDepth(400, 0);
+      const elevatedTileDepth = calculateTileDepth(200, 1);
+      expect(enemyDepth).toBeLessThan(elevatedTileDepth);
     });
   });
 });
