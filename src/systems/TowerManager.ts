@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { Tower } from '../entities/Tower';
 import { TOWERS } from '../config/towers';
+import { getEffectiveRange, getElevationCostMultiplier } from '../utils/elevation';
+import { hasLineOfSight } from '../utils/line-of-sight';
 
 /**
  * TowerManager
@@ -18,9 +20,12 @@ export class TowerManager {
 
   private towers: Tower[] = [];
   private scene: Phaser.Scene;
+  private towerElevations: Map<Tower, number> = new Map();
+  private heightGrid: number[][] = [];
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, heightGrid: number[][]) {
     this.scene = scene;
+    this.heightGrid = heightGrid;
     this.events = new Phaser.Events.EventEmitter();
   }
 
@@ -33,9 +38,10 @@ export class TowerManager {
    * @param tileX - tile grid X coordinate
    * @param tileY - tile grid Y coordinate
    * @param towerKey - key into TOWERS config (e.g. 'laser')
+   * @param elevation - elevation of the build slot (default 0)
    * @returns the newly created Tower, or null if placement is invalid
    */
-  public placeTower(tileX: number, tileY: number, towerKey: string): Tower | null {
+  public placeTower(tileX: number, tileY: number, towerKey: string, elevation: number = 0): Tower | null {
     // Validate tower key
     if (!TOWERS[towerKey]) {
       console.warn(`TowerManager.placeTower: unknown tower key "${towerKey}"`);
@@ -48,8 +54,9 @@ export class TowerManager {
       return null;
     }
 
-    const tower = new Tower(this.scene, tileX, tileY, towerKey);
+    const tower = new Tower(this.scene, tileX, tileY, towerKey, elevation);
     this.towers.push(tower);
+    this.towerElevations.set(tower, elevation);
 
     this.events.emit('tower-placed', { tower });
     return tower;
@@ -68,6 +75,7 @@ export class TowerManager {
 
     const refund = tower.getSellValue();
     this.towers.splice(idx, 1);
+    this.towerElevations.delete(tower);
 
     this.events.emit('tower-sold', { tower, refund });
 
@@ -140,7 +148,7 @@ export class TowerManager {
 
   /**
    * Called every frame by the game scene's update loop.
-   * Forwards the update call to each tower with the current enemy list.
+   * Forwards the update call to each tower with elevation-filtered enemy list.
    *
    * Also writes the enemy array into the scene data store so that
    * projectiles can discover enemies for splash damage resolution.
@@ -150,8 +158,64 @@ export class TowerManager {
     this.scene.data.set('enemies', enemies);
 
     for (const tower of this.towers) {
-      tower.update(time, delta, enemies);
+      const towerElevation = this.towerElevations.get(tower) ?? 0;
+      const towerTilePos = tower.getTilePos();
+      const tier = tower.getCurrentTierStats();
+
+      // Filter enemies by effective range and line-of-sight
+      const filteredEnemies = enemies.filter((enemy) => {
+        if (!enemy.active) return false;
+
+        // Get enemy elevation (placeholder: use 0 until Enemy entity gains currentElevation)
+        const enemyElevation = enemy.currentElevation ?? 0;
+
+        // Apply elevation-adjusted range
+        const effectiveRange = getEffectiveRange(tier.range, towerElevation, enemyElevation);
+        const dist = Phaser.Math.Distance.Between(tower.x, tower.y, enemy.x, enemy.y);
+        if (dist > effectiveRange) return false;
+
+        // Check line-of-sight
+        const enemyTilePos = this.worldToTile(enemy.x, enemy.y);
+        const hasLOS = hasLineOfSight(
+          this.heightGrid,
+          towerTilePos.x, towerTilePos.y, towerElevation,
+          enemyTilePos.col, enemyTilePos.row, enemyElevation
+        );
+
+        return hasLOS;
+      });
+
+      tower.update(time, delta, filteredEnemies);
     }
+  }
+
+  /**
+   * Approximate world-to-tile conversion for line-of-sight checks.
+   * Uses a simple orthogonal approximation until proper isometric conversion is available.
+   */
+  private worldToTile(worldX: number, worldY: number): { col: number; row: number } {
+    // Simplified conversion (Tower uses TILE_SIZE=64 orthogonal positioning for now)
+    const TILE_SIZE = 64;
+    return {
+      col: Math.round(worldX / TILE_SIZE),
+      row: Math.round(worldY / TILE_SIZE),
+    };
+  }
+
+  /**
+   * Get the elevation of a placed tower.
+   */
+  public getTowerElevation(tower: Tower): number {
+    return this.towerElevations.get(tower) ?? 0;
+  }
+
+  /**
+   * Get the base cost of a tower adjusted for elevation.
+   */
+  public getElevationAdjustedCost(towerKey: string, elevation: number): number {
+    const config = TOWERS[towerKey];
+    if (!config) return 0;
+    return Math.floor(config.baseCost * getElevationCostMultiplier(elevation));
   }
 
   /**
@@ -163,6 +227,7 @@ export class TowerManager {
       tower.destroy();
     }
     this.towers = [];
+    this.towerElevations.clear();
     this.events.destroy();
   }
 }

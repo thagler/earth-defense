@@ -17,6 +17,7 @@ import { Waypoint } from './PathFollower';
 export class EnemySpawner extends Phaser.Events.EventEmitter {
   private scene: Phaser.Scene;
   private waypoints: Waypoint[];
+  private pathElevations: number[];
   private levelConfig: LevelConfig;
 
   /** All enemies managed by this spawner, including dead/removed ones still in the group. */
@@ -39,10 +40,11 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
   private allSegmentsExhausted: boolean = false;
   private enemiesReachedBase: number = 0;
 
-  constructor(scene: Phaser.Scene, waypoints: Waypoint[], levelConfig: LevelConfig) {
+  constructor(scene: Phaser.Scene, waypoints: Waypoint[], levelConfig: LevelConfig, pathElevations?: number[]) {
     super();
     this.scene = scene;
     this.waypoints = waypoints;
+    this.pathElevations = pathElevations ?? Array(waypoints.length).fill(0);
     this.levelConfig = levelConfig;
     this.segments = [...levelConfig.segments]; // shallow copy, segments are read-only
     this.enemyGroup = this.scene.add.group();
@@ -166,7 +168,7 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
 
     // Spawn the enemy at the first waypoint
     const startPos = this.waypoints[0];
-    this.createEnemy(segment.enemyKey, startPos.x, startPos.y, 0);
+    this.createEnemy(segment.enemyKey, startPos.x, startPos.y, 0, this.pathElevations);
 
     this.spawnedInSegment++;
 
@@ -191,12 +193,14 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
    * @param x                - World X spawn position.
    * @param y                - World Y spawn position.
    * @param startWaypointIdx - Waypoint index to begin path following from.
+   * @param elevations       - Array of elevation values parallel to waypoints.
    */
   private createEnemy(
     enemyKey: string,
     x: number,
     y: number,
     startWaypointIdx: number,
+    elevations?: number[],
   ): Enemy {
     const enemy = new Enemy(
       this.scene,
@@ -206,6 +210,7 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
       this.waypoints,
       this.levelConfig.hpScale,
       startWaypointIdx,
+      elevations,
     );
 
     // ---- Wire events ----
@@ -238,6 +243,7 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
   /**
    * Handle a split event by spawning mini-drones at the parent's death
    * position, continuing from the parent's current waypoint index.
+   * Split-spawned children inherit the remaining path elevations from the parent's position.
    */
   private handleSplit(data: {
     x: number;
@@ -247,6 +253,10 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
     waypointIndex: number;
   }): void {
     const { x, y, splitCount, splitEnemyKey, waypointIndex } = data;
+
+    // Slice the pathElevations array from the parent's current waypoint index
+    // to give children the remaining elevation data
+    const remainingElevations = this.pathElevations.slice(waypointIndex);
 
     for (let i = 0; i < splitCount; i++) {
       // Offset each mini-drone slightly so they don't stack perfectly
@@ -258,6 +268,7 @@ export class EnemySpawner extends Phaser.Events.EventEmitter {
         x + offsetX,
         y + offsetY,
         waypointIndex,
+        remainingElevations,
       );
     }
   }

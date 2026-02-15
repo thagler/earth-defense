@@ -14,6 +14,7 @@ export class Tower extends Phaser.GameObjects.Container {
   public currentTier: number = 1;
   public creditsSpent: number = 0;
   public kills: number = 0;
+  public readonly elevation: number;
 
   private towerBody: Phaser.GameObjects.Arc | Phaser.GameObjects.Sprite;
   private rangeIndicator: Phaser.GameObjects.Arc;
@@ -21,13 +22,14 @@ export class Tower extends Phaser.GameObjects.Container {
   private fireCooldownRemaining: number = 0;
   private tilePos: { x: number; y: number };
 
-  constructor(scene: Phaser.Scene, tileX: number, tileY: number, towerKey: string) {
+  constructor(scene: Phaser.Scene, tileX: number, tileY: number, towerKey: string, elevation: number = 0) {
     const worldX = tileX * TILE_SIZE + TILE_SIZE / 2;
     const worldY = tileY * TILE_SIZE + TILE_SIZE / 2;
     super(scene, worldX, worldY);
 
     this.towerKey = towerKey;
     this.config = TOWERS[towerKey];
+    this.elevation = elevation;
 
     if (!this.config) {
       throw new Error(`Tower config not found for key: "${towerKey}"`);

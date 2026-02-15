@@ -96,11 +96,11 @@ export class GameScene extends Phaser.Scene {
     this.economyManager = new EconomyManager(this.levelConfig);
 
     // ---- Tower Manager ----
-    this.towerManager = new TowerManager(this);
+    this.towerManager = new TowerManager(this, mapConfig.heightGrid);
 
     // ---- Path waypoints & Enemy Spawner ----
     const waypoints = this.tilemapRenderer.getPathPoints();
-    this.enemySpawner = new EnemySpawner(this, waypoints, this.levelConfig);
+    this.enemySpawner = new EnemySpawner(this, waypoints, this.levelConfig, mapConfig.pathElevations);
 
     // ---- UI Components ----
     this.hud = new HUD(this);
@@ -184,7 +184,7 @@ export class GameScene extends Phaser.Scene {
         const purchased = this.economyManager.buyTower(selectedKey);
         if (!purchased) return;
 
-        const tower = this.towerManager.placeTower(slot.tileX, slot.tileY, selectedKey);
+        const tower = this.towerManager.placeTower(slot.tileX, slot.tileY, selectedKey, slot.elevation);
 
         if (!tower) {
           // Placement failed -- refund the cost. baseCost was already deducted

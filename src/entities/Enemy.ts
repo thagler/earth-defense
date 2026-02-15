@@ -54,6 +54,7 @@ export class Enemy extends Phaser.GameObjects.Container {
    * @param waypoints        - Array of world-coordinate waypoints to follow.
    * @param hpScale          - Multiplier applied to base HP (from level config).
    * @param startWaypointIdx - Optional waypoint index to start from (for split spawns).
+   * @param pathElevations   - Optional array of elevation values parallel to waypoints.
    */
   constructor(
     scene: Phaser.Scene,
@@ -63,6 +64,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     waypoints: Waypoint[],
     hpScale: number = 1.0,
     startWaypointIdx: number = 0,
+    pathElevations?: number[],
   ) {
     super(scene, startX, startY);
 
@@ -91,7 +93,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     }
 
     // ---- Path following ----
-    this.pathFollower = new PathFollower(waypoints, startWaypointIdx);
+    this.pathFollower = new PathFollower(waypoints, startWaypointIdx, pathElevations);
 
     // ---- Create visuals ----
     this.createVisuals();
