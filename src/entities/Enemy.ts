@@ -120,22 +120,26 @@ export class Enemy extends Phaser.GameObjects.Container {
     const HALF = SIZE / 2;
     const HEALTH_BAR_WIDTH = SIZE;
     const HEALTH_BAR_HEIGHT = 4;
-    const HEALTH_BAR_Y = -(HALF + 6); // above the body
+    // Bottom-align: body center is now at -HALF, so top edge is at -SIZE
+    // Health bar should be 6px above the top edge: -(SIZE + 6)
+    const HEALTH_BAR_Y = -(SIZE + 6);
 
     // Body (sprite if texture exists, fallback to colored rectangle)
+    // Bottom-align: shift body up by half height so visual bottom sits at tile center
     // Enemy keys use underscores in config but hyphens in texture names
     const enemyTextureKey = `enemy-${this.enemyKey.replace(/_/g, '-')}`;
     if (this.scene.textures.exists(enemyTextureKey)) {
-      const sprite = this.scene.add.sprite(0, 0, enemyTextureKey);
+      const sprite = this.scene.add.sprite(0, -HALF, enemyTextureKey);
       sprite.setDisplaySize(SIZE, SIZE);
       this.bodyRect = sprite;
     } else {
-      this.bodyRect = this.scene.add.rectangle(0, 0, SIZE, SIZE, Phaser.Display.Color.HexStringToColor(this.config.color).color);
+      this.bodyRect = this.scene.add.rectangle(0, -HALF, SIZE, SIZE, Phaser.Display.Color.HexStringToColor(this.config.color).color);
     }
     this.add(this.bodyRect);
 
     // Shield overlay (slightly larger, semi-transparent blue) -- hidden when no shield
-    this.shieldOverlay = this.scene.add.rectangle(0, 0, SIZE + 4, SIZE + 4);
+    // Position at same y as body to match
+    this.shieldOverlay = this.scene.add.rectangle(0, -HALF, SIZE + 4, SIZE + 4);
     this.shieldOverlay.setStrokeStyle(2, 0x4488ff, 0.8);
     this.shieldOverlay.setFillStyle(0x4488ff, 0.2);
     this.shieldOverlay.setVisible(this.hasShield && this.currentShieldHp > 0);

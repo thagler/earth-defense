@@ -52,14 +52,15 @@ export class Tower extends Phaser.GameObjects.Container {
     this.add(shadow);
 
     // -- Tower body (sprite if texture exists, fallback to colored circle) --
+    // Bottom-align: shift body up by half height so visual bottom sits at tile center
     const towerTextureKey = `tower-${this.towerKey}`;
     if (scene.textures.exists(towerTextureKey)) {
-      const sprite = scene.add.sprite(0, 0, towerTextureKey);
+      const sprite = scene.add.sprite(0, -20, towerTextureKey);
       sprite.setDisplaySize(40, 40);
       this.towerBody = sprite;
     } else {
       const colorInt = Phaser.Display.Color.HexStringToColor(this.config.color).color;
-      this.towerBody = scene.add.arc(0, 0, 20, 0, 360, false, colorInt, 1);
+      this.towerBody = scene.add.arc(0, -20, 20, 0, 360, false, colorInt, 1);
       (this.towerBody as Phaser.GameObjects.Arc).setStrokeStyle(2, 0xffffff, 0.6);
     }
     this.add(this.towerBody);
