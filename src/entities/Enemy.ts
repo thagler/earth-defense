@@ -102,6 +102,11 @@ export class Enemy extends Phaser.GameObjects.Container {
     // ---- Create visuals ----
     this.createVisuals();
 
+    // ---- Ground shadow (ellipse at tile center, rendered behind body) ----
+    const SIZE = 24;
+    const shadow = scene.add.ellipse(0, 0, SIZE + 8, (SIZE + 8) / 2, 0x000000, 0.15);
+    this.add(shadow);
+
     // Add to scene
     scene.add.existing(this);
   }

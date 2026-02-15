@@ -47,6 +47,10 @@ export class Tower extends Phaser.GameObjects.Container {
     this.rangeIndicator.setVisible(false);
     this.rangeIndicator.setDepth(999);
 
+    // -- Ground shadow (ellipse at tile center, rendered behind tower body) --
+    const shadow = scene.add.ellipse(0, 0, 48, 24, 0x000000, 0.15);
+    this.add(shadow);
+
     // -- Tower body (sprite if texture exists, fallback to colored circle) --
     const towerTextureKey = `tower-${this.towerKey}`;
     if (scene.textures.exists(towerTextureKey)) {
