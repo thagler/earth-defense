@@ -178,11 +178,12 @@ export class TowerPicker extends Phaser.Events.EventEmitter {
     const container = this.scene.add.container(x, y);
     container.setScrollFactor(0);
     container.setDepth(TowerPicker.DEPTH);
+    container.setSize(110, 58);
+    container.setInteractive({ useHandCursor: true });
 
     // Button background
     const bg = this.scene.add.rectangle(0, 0, 110, 58, 0x222244, 0.6);
     bg.setStrokeStyle(2, TowerPicker.DEFAULT_STROKE_COLOR, 0.8);
-    bg.setInteractive({ useHandCursor: true });
     container.add(bg);
 
     // Color swatch (icon sprite if available, fallback to colored square)
@@ -230,17 +231,17 @@ export class TowerPicker extends Phaser.Events.EventEmitter {
     };
 
     // ---- Interaction handlers ----
-    bg.on('pointerover', () => {
+    container.on('pointerover', () => {
       if (button.affordable) {
         bg.setFillStyle(0x333366, 0.8);
       }
     });
 
-    bg.on('pointerout', () => {
+    container.on('pointerout', () => {
       bg.setFillStyle(0x222244, 0.6);
     });
 
-    bg.on('pointerdown', () => {
+    container.on('pointerdown', () => {
       if (!button.affordable) return;
 
       // Play click sound
