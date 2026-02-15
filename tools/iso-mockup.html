@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Earth Defense v2.0 - Isometric Mockup</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/isomer/0.2.6/isomer.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #0a0a0a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #fff;
+    }
+    .container {
+      max-width: 1900px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0 0 20px 0;
+      font-size: 28px;
+    }
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    select {
+      padding: 8px 12px;
+      font-size: 14px;
+      background: #1a1a2e;
+      color: #fff;
+      border: 1px solid #2a2a3e;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    select:hover {
+      border-color: #44ff44;
+    }
+    .canvas-wrapper {
+      background: #0a0a0a;
+      border: 1px solid #2a2a3e;
+      border-radius: 4px;
+      overflow: hidden;
+      display: inline-block;
+    }
+    canvas {
+      display: block;
+      background: #0a0a0a;
+    }
+    .info {
+      margin-top: 20px;
+      padding: 15px;
+      background: #1a1a2e;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .legend-item {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .legend-color {
+      width: 24px;
+      height: 24px;
+      border-radius: 2px;
+      border: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Earth Defense v2.0 - Isometric Mockup</h1>
+    <div class="controls">
+      <label for="levelSelect">Level:</label>
+      <select id="levelSelect">
+        <option value="0">Level 1 - Desert Outpost (Flat)</option>
+        <option value="1">Level 2 - Coastal Base (Flat)</option>
+        <option value="2">Level 3 - Mountain Pass (Flat)</option>
+        <option value="3">Level 4 - Urban Ruins (Flat)</option>
+        <option value="4">Level 5 - Mothership Approach (Flat)</option>
+      </select>
+    </div>
+    <div class="canvas-wrapper">
+      <canvas id="canvas" width="1800" height="900"></canvas>
+    </div>
+    <div class="info">
+      <div><strong>Tile Colors & Heights:</strong></div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgb(26, 26, 46);"></div>
+          <span>Ground (h=0.05)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgb(42, 42, 62);"></div>
+          <span>Path (h=0.02)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgb(46, 58, 46);"></div>
+          <span>Build Slot (h=0.15)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgb(68, 255, 68);"></div>
+          <span>Spawn (h=0.1)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgb(255, 68, 68);"></div>
+          <span>Base (h=0.1)</span>
+        </div>
+      </div>
+      <div style="margin-top: 15px; opacity: 0.7;">
+        Use the dropdown above to switch between levels. All tiles are rendered as isometric 3D prisms with elevation.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // TileType enum
+    const TileType = {
+      Ground:    0,
+      Path:      1,
+      BuildSlot: 2,
+      Spawn:     3,
+      Base:      4,
+    };
+
+    // Tile colors from TilemapRenderer.ts
+    const TILE_COLORS = {
+      [TileType.Ground]:    [26, 26, 46],
+      [TileType.Path]:      [42, 42, 62],
+      [TileType.BuildSlot]: [46, 58, 46],
+      [TileType.Spawn]:     [68, 255, 68],
+      [TileType.Base]:      [255, 68, 68],
+    };
+
+    // Tile heights for isometric rendering
+    const TILE_HEIGHTS = {
+      [TileType.Ground]:    0.05,
+      [TileType.Path]:      0.02,
+      [TileType.BuildSlot]: 0.15,
+      [TileType.Spawn]:     0.1,
+      [TileType.Base]:      0.1,
+    };
+
+    // Level 1 -- Desert Outpost
+    const level1Grid = [
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 3, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 2, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 1, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4 ],
+      [ 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0 ],
+    ];
+
+    // Level 2 -- Coastal Base
+    const level2Grid = [
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ],
+      [ 0, 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 1, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 2, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 4 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0 ],
+    ];
+
+    // Level 3 -- Mountain Pass
+    const level3Grid = [
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 3, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 ],
+      [ 0, 0, 2, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 2, 1, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ],
+      [ 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 ],
+      [ 0, 1, 2, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0 ],
+      [ 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4 ],
+      [ 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+    ];
+
+    // Level 4 -- Urban Ruins
+    const level4Grid = [
+      [ 0, 3, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 2, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 2, 1, 0, 0 ],
+      [ 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 ],
+      [ 0, 0, 1, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0 ],
+      [ 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 2, 0, 0, 2, 0, 2, 1, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 1, 1, 4 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0 ],
+    ];
+
+    // Level 5 -- Mothership Approach
+    const level5Grid = [
+      [ 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0 ],
+      [ 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 ],
+      [ 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 ],
+      [ 0, 2, 1, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0 ],
+      [ 0, 2, 0, 2, 0, 0, 2, 0, 0, 2, 0, 1, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 2, 4, 0, 2, 0, 0, 0, 0, 0, 0 ],
+    ];
+
+    // Create sample elevation grids
+    // Level 1: all flat (elevation 0)
+    const level1Elevation = Array(12).fill(null).map(() => Array(16).fill(0));
+
+    // Level 3: sample elevation with height variation (0-1)
+    const level3Elevation = [
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 ],
+      [ 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 ],
+      [ 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 ],
+      [ 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 ],
+      [ 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+      [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+    ];
+
+    const LEVELS = [
+      { grid: level1Grid, elevation: level1Elevation, name: 'Level 1 - Desert Outpost (Flat)' },
+      { grid: level2Grid, elevation: level1Elevation, name: 'Level 2 - Coastal Base (Flat)' },
+      { grid: level3Grid, elevation: level3Elevation, name: 'Level 3 - Mountain Pass (Flat)' },
+      { grid: level4Grid, elevation: level1Elevation, name: 'Level 4 - Urban Ruins (Flat)' },
+      { grid: level5Grid, elevation: level1Elevation, name: 'Level 5 - Mothership Approach (Flat)' },
+    ];
+
+    // Initialize canvas and Isomer
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let iso = new Isomer(canvas);
+
+    function rgbToString(rgb) {
+      return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+    }
+
+    function renderLevel(levelIndex) {
+      // Clear canvas
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const level = LEVELS[levelIndex];
+      const grid = level.grid;
+      const elevation = level.elevation;
+
+      // Center the isometric rendering
+      iso = new Isomer(canvas, {
+        originX: canvas.width / 2,
+        originY: canvas.height / 2 - 100,
+      });
+
+      // Render tiles as isometric prisms from back to front, bottom to top
+      // Iterate in order: row, then column (back to front)
+      for (let row = grid.length - 1; row >= 0; row--) {
+        for (let col = 0; col < grid[0].length; col++) {
+          const tileValue = grid[row][col];
+          const tileElevation = elevation[row][col] || 0;
+          const color = TILE_COLORS[tileValue];
+          const height = TILE_HEIGHTS[tileValue];
+
+          const colorStr = rgbToString(color);
+          const isoColor = new Isomer.Color(color[0], color[1], color[2]);
+
+          // Draw prism: base at (col, row, 0), with height
+          const point = new Isomer.Point(col, row, tileElevation);
+          const prism = new Isomer.Shape.Prism(point, 1, 1, height);
+          iso.add(prism, isoColor);
+        }
+      }
+    }
+
+    // Initial render
+    renderLevel(0);
+
+    // Level selector event
+    document.getElementById('levelSelect').addEventListener('change', (e) => {
+      renderLevel(parseInt(e.target.value));
+    });
+  </script>
+</body>
+</html>
