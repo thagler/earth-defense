@@ -26,13 +26,13 @@ export const TOWERS: Record<string, TowerConfig> = {
     description: 'Rapid-pulse energy weapon. Fast fire rate, low damage.',
     baseCost: 50,
     upgradeCosts: [75, 100],
-    sellRefundRate: 0.5,
+    sellRefundRate: 0.4,
     projectileSpeed: 600,
     color: '#00ff88',
     tiers: [
       { damage: 8, range: 120, fireRate: 4 },
       { damage: 12, range: 140, fireRate: 5 },
-      { damage: 18, range: 160, fireRate: 6 },
+      { damage: 15, range: 160, fireRate: 5 },
     ],
   },
   missile: {
@@ -40,8 +40,8 @@ export const TOWERS: Record<string, TowerConfig> = {
     name: 'Missile Battery',
     description: 'Guided plasma warheads. Slow but devastating with splash damage.',
     baseCost: 75,
-    upgradeCosts: [112, 150],
-    sellRefundRate: 0.5,
+    upgradeCosts: [105, 120],
+    sellRefundRate: 0.4,
     projectileSpeed: 300,
     color: '#ff6644',
     tiers: [
@@ -54,9 +54,9 @@ export const TOWERS: Record<string, TowerConfig> = {
     key: 'cryo',
     name: 'Cryo Emitter',
     description: 'Freezing field generator. Slows enemies, minimal damage.',
-    baseCost: 60,
-    upgradeCosts: [90, 120],
-    sellRefundRate: 0.5,
+    baseCost: 50,
+    upgradeCosts: [70, 80],
+    sellRefundRate: 0.4,
     projectileSpeed: 0, // area effect, no projectile
     color: '#44ccff',
     tiers: [
@@ -70,14 +70,14 @@ export const TOWERS: Record<string, TowerConfig> = {
     name: 'Rail Gun',
     description: 'Electromagnetic accelerator. Extreme range and damage, very slow.',
     baseCost: 100,
-    upgradeCosts: [150, 200],
-    sellRefundRate: 0.5,
+    upgradeCosts: [140, 160],
+    sellRefundRate: 0.4,
     projectileSpeed: 900,
     color: '#ffcc00',
     tiers: [
       { damage: 60, range: 200, fireRate: 0.4 },
       { damage: 90, range: 240, fireRate: 0.5 },
-      { damage: 130, range: 280, fireRate: 0.6 },
+      { damage: 150, range: 280, fireRate: 0.6 },
     ],
   },
   pulse: {
@@ -85,14 +85,14 @@ export const TOWERS: Record<string, TowerConfig> = {
     name: 'Pulse Cannon',
     description: 'Shockwave emitter. Hits all enemies in radius.',
     baseCost: 150,
-    upgradeCosts: [300, 500],
-    sellRefundRate: 0.5,
+    upgradeCosts: [250, 300],
+    sellRefundRate: 0.4,
     projectileSpeed: 0, // area effect
     color: '#cc44ff',
     tiers: [
       { damage: 15, range: 110, fireRate: 1.5, splashRadius: 110 },
       { damage: 22, range: 130, fireRate: 1.8, splashRadius: 130 },
-      { damage: 32, range: 150, fireRate: 2.0, splashRadius: 150 },
+      { damage: 40, range: 150, fireRate: 2.0, splashRadius: 150 },
     ],
   },
 };

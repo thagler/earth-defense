@@ -19,8 +19,8 @@ function createTestLevel(overrides: Partial<LevelConfig> = {}): LevelConfig {
     name: 'Test Level',
     theme: 'test',
     world: 1,
-    startingCredits: 200,
-    passiveIncomeRate: 5,
+    startingCredits: 150,
+    passiveIncomeRate: 2,
     lives: 10,
     buildSlots: 8,
     hpScale: 1.0,
@@ -44,7 +44,7 @@ describe('EconomyManager', () => {
 
   describe('initialization', () => {
     it('should start with startingCredits from level config', () => {
-      expect(economy.getCredits()).toBe(200);
+      expect(economy.getCredits()).toBe(150);
     });
 
     it('should start with correct credits for different level configs', () => {
@@ -55,7 +55,7 @@ describe('EconomyManager', () => {
 
     it('should initialize stats with startingCredits as totalEarned', () => {
       const stats = economy.getStats();
-      expect(stats.totalEarned).toBe(200);
+      expect(stats.totalEarned).toBe(150);
       expect(stats.totalSpent).toBe(0);
       expect(stats.totalFromKills).toBe(0);
       expect(stats.totalFromPassive).toBe(0);
@@ -69,14 +69,14 @@ describe('EconomyManager', () => {
   describe('addCredits', () => {
     it('should add credits to the balance', () => {
       economy.addCredits(50);
-      expect(economy.getCredits()).toBe(250);
+      expect(economy.getCredits()).toBe(200);
     });
 
     it('should ignore zero or negative amounts', () => {
       economy.addCredits(0);
-      expect(economy.getCredits()).toBe(200);
+      expect(economy.getCredits()).toBe(150);
       economy.addCredits(-10);
-      expect(economy.getCredits()).toBe(200);
+      expect(economy.getCredits()).toBe(150);
     });
 
     it('should track added credits in totalFromKills', () => {
@@ -91,17 +91,17 @@ describe('EconomyManager', () => {
     it('should deduct credits and return true on success', () => {
       const result = economy.spendCredits(50);
       expect(result).toBe(true);
-      expect(economy.getCredits()).toBe(150);
+      expect(economy.getCredits()).toBe(100);
     });
 
     it('should return false and not deduct when insufficient', () => {
       const result = economy.spendCredits(300);
       expect(result).toBe(false);
-      expect(economy.getCredits()).toBe(200);
+      expect(economy.getCredits()).toBe(150);
     });
 
     it('should allow spending exact balance', () => {
-      const result = economy.spendCredits(200);
+      const result = economy.spendCredits(150);
       expect(result).toBe(true);
       expect(economy.getCredits()).toBe(0);
     });
@@ -115,7 +115,7 @@ describe('EconomyManager', () => {
     it('should handle zero amount gracefully', () => {
       const result = economy.spendCredits(0);
       expect(result).toBe(true);
-      expect(economy.getCredits()).toBe(200);
+      expect(economy.getCredits()).toBe(150);
     });
   });
 
@@ -125,11 +125,11 @@ describe('EconomyManager', () => {
     });
 
     it('should return true for exact balance', () => {
-      expect(economy.canAfford(200)).toBe(true);
+      expect(economy.canAfford(150)).toBe(true);
     });
 
     it('should return false when credits are insufficient', () => {
-      expect(economy.canAfford(201)).toBe(false);
+      expect(economy.canAfford(151)).toBe(false);
     });
   });
 
@@ -139,66 +139,66 @@ describe('EconomyManager', () => {
 
   describe('passive income (update)', () => {
     it('should accumulate passive income over time', () => {
-      // 5 credits/sec * 1 second = 5 credits
+      // 2 credits/sec * 1 second = 2 credits
       economy.update(1000);
-      expect(economy.getCredits()).toBe(205);
+      expect(economy.getCredits()).toBe(152);
     });
 
     it('should handle fractional accumulation correctly', () => {
-      // 5 credits/sec * 16ms = 0.08 credits per tick
-      // After 12 ticks: 0.08 * 12 = 0.96 -- not yet 1 whole credit
-      for (let i = 0; i < 12; i++) {
+      // 2 credits/sec * 16ms = 0.032 credits per tick
+      // After 31 ticks: 0.032 * 31 = 0.992 -- not yet 1 whole credit
+      for (let i = 0; i < 31; i++) {
         economy.update(16);
       }
-      expect(economy.getCredits()).toBe(200); // No whole credit yet
+      expect(economy.getCredits()).toBe(150); // No whole credit yet
 
-      // 13th tick: 0.08 * 13 = 1.04 -- 1 whole credit added
+      // 32nd tick: 0.032 * 32 = 1.024 -- 1 whole credit added
       economy.update(16);
-      expect(economy.getCredits()).toBe(201);
+      expect(economy.getCredits()).toBe(151);
     });
 
     it('should accumulate multiple whole credits from larger deltas', () => {
-      // 5 credits/sec * 600ms = 3 credits
-      economy.update(600);
-      expect(economy.getCredits()).toBe(203);
+      // 2 credits/sec * 1000ms = 2 credits
+      economy.update(1000);
+      expect(economy.getCredits()).toBe(152);
     });
 
     it('should not lose fractional credits between updates', () => {
-      // 5 credits/sec, delta = 300ms => 1.5 credits per tick
-      // Tick 1: +1 (0.5 accumulated)
-      economy.update(300);
-      expect(economy.getCredits()).toBe(201);
+      // 2 credits/sec, delta = 1000ms => 2 credits per tick
+      // Tick 1: +2
+      economy.update(1000);
+      expect(economy.getCredits()).toBe(152);
 
-      // Tick 2: 0.5 + 1.5 = 2.0 => +2
-      economy.update(300);
-      expect(economy.getCredits()).toBe(203);
+      // Tick 2: +2
+      economy.update(1000);
+      expect(economy.getCredits()).toBe(154);
     });
 
     it('should do nothing with zero passive income rate', () => {
       const noIncomeLevel = createTestLevel({ passiveIncomeRate: 0 });
       const noIncomeEconomy = new EconomyManager(noIncomeLevel);
       noIncomeEconomy.update(5000);
-      expect(noIncomeEconomy.getCredits()).toBe(200);
+      expect(noIncomeEconomy.getCredits()).toBe(150);
     });
 
     it('should track passive income in stats separately from kill credits', () => {
-      economy.update(1000); // +5 from passive
+      economy.update(1000); // +2 from passive
       economy.addCredits(10); // +10 from kills
 
       const stats = economy.getStats();
-      expect(stats.totalFromPassive).toBe(5);
+      expect(stats.totalFromPassive).toBe(2);
       expect(stats.totalFromKills).toBe(10);
     });
 
     it('should accumulate correctly over many small ticks', () => {
       // Simulate 1 second at ~60fps (16.67ms per frame)
-      // 5 credits/sec * 1 sec = 5 credits expected
+      // 2 credits/sec * 1 sec = 2 credits expected
       for (let i = 0; i < 60; i++) {
         economy.update(16.6667);
       }
-      // 60 * 16.6667 = 1000.002ms => 5.00001 credits
-      // Should have added 5 whole credits
-      expect(economy.getCredits()).toBe(205);
+      // 60 * 16.6667 = 1000.002ms => 2.00001 credits
+      // Should have added 2 whole credits
+      expect(economy.getCredits()).toBe(152);
     });
   });
 
@@ -212,12 +212,12 @@ describe('EconomyManager', () => {
       expect(economy.canBuyTower('laser')).toBe(true);
       const result = economy.buyTower('laser');
       expect(result).toBe(true);
-      expect(economy.getCredits()).toBe(150);
+      expect(economy.getCredits()).toBe(100);
     });
 
     it('should deny buying when credits are insufficient', () => {
       // Railgun costs 100; spend down to 50 first
-      economy.spendCredits(160);
+      economy.spendCredits(110);
       expect(economy.getCredits()).toBe(40);
       expect(economy.canBuyTower('railgun')).toBe(false);
       const result = economy.buyTower('railgun');
@@ -231,21 +231,21 @@ describe('EconomyManager', () => {
       const missileCost = TOWERS['missile'].baseCost; // 75
 
       economy.buyTower('laser');
-      expect(economy.getCredits()).toBe(200 - laserCost);
+      expect(economy.getCredits()).toBe(150 - laserCost);
 
       economy.buyTower('missile');
-      expect(economy.getCredits()).toBe(200 - laserCost - missileCost);
+      expect(economy.getCredits()).toBe(150 - laserCost - missileCost);
     });
 
     it('should return false for an invalid tower key', () => {
       expect(economy.canBuyTower('nonexistent')).toBe(false);
       expect(economy.buyTower('nonexistent')).toBe(false);
-      expect(economy.getCredits()).toBe(200); // unchanged
+      expect(economy.getCredits()).toBe(150); // unchanged
     });
 
     it('should allow buying a tower with exactly enough credits', () => {
       // Set credits to exactly 50 (laser cost)
-      economy.spendCredits(150);
+      economy.spendCredits(100);
       expect(economy.getCredits()).toBe(50);
       expect(economy.canBuyTower('laser')).toBe(true);
       expect(economy.buyTower('laser')).toBe(true);
@@ -263,7 +263,7 @@ describe('EconomyManager', () => {
       expect(economy.canUpgradeTower('laser', 1)).toBe(true);
       const result = economy.upgradeTower('laser', 1);
       expect(result).toBe(true);
-      expect(economy.getCredits()).toBe(200 - 75);
+      expect(economy.getCredits()).toBe(150 - 75);
     });
 
     it('should allow upgrading from tier 2 to tier 3', () => {
@@ -271,23 +271,23 @@ describe('EconomyManager', () => {
       expect(economy.canUpgradeTower('laser', 2)).toBe(true);
       const result = economy.upgradeTower('laser', 2);
       expect(result).toBe(true);
-      expect(economy.getCredits()).toBe(200 - 100);
+      expect(economy.getCredits()).toBe(150 - 100);
     });
 
     it('should not allow upgrading past tier 3', () => {
       expect(economy.canUpgradeTower('laser', 3)).toBe(false);
       const result = economy.upgradeTower('laser', 3);
       expect(result).toBe(false);
-      expect(economy.getCredits()).toBe(200); // unchanged
+      expect(economy.getCredits()).toBe(150); // unchanged
     });
 
     it('should deny upgrade when credits are insufficient', () => {
-      // Railgun tier 2 costs 150; start with 200, spend 100 first
+      // Railgun tier 2 costs 140; start with 150, spend 100 first
       economy.spendCredits(100);
       expect(economy.canUpgradeTower('railgun', 1)).toBe(false);
       const result = economy.upgradeTower('railgun', 1);
       expect(result).toBe(false);
-      expect(economy.getCredits()).toBe(100);
+      expect(economy.getCredits()).toBe(50);
     });
 
     it('should return false for invalid tower key', () => {
@@ -303,9 +303,9 @@ describe('EconomyManager', () => {
     });
 
     it('should deduct the correct upgrade cost for each tower', () => {
-      // Missile tier 2: upgradeCosts[0] = 112
+      // Missile tier 2: upgradeCosts[0] = 105
       economy.upgradeTower('missile', 1);
-      expect(economy.getCredits()).toBe(200 - 112);
+      expect(economy.getCredits()).toBe(150 - 105);
     });
   });
 
@@ -314,53 +314,53 @@ describe('EconomyManager', () => {
   // ──────────────────────────────────────────────
 
   describe('sellTower', () => {
-    it('should refund 50% of base cost for tier 1 tower', () => {
-      // Laser: baseCost 50, sellRefundRate 0.5
-      // Refund = 50 * 0.5 = 25
-      economy.buyTower('laser'); // 200 - 50 = 150
+    it('should refund 40% of base cost for tier 1 tower', () => {
+      // Laser: baseCost 50, sellRefundRate 0.4
+      // Refund = 50 * 0.4 = 20
+      economy.buyTower('laser'); // 150 - 50 = 100
       const refund = economy.sellTower('laser', 1);
-      expect(refund).toBe(25);
-      expect(economy.getCredits()).toBe(175);
+      expect(refund).toBe(20);
+      expect(economy.getCredits()).toBe(120);
     });
 
-    it('should refund 50% of total invested for tier 2 tower', () => {
+    it('should refund 40% of total invested for tier 2 tower', () => {
       // Laser: baseCost 50 + upgradeCost[0] 75 = 125 invested
-      // Refund = 125 * 0.5 = 62 (floored)
-      economy.buyTower('laser'); // 200 - 50 = 150
-      economy.upgradeTower('laser', 1); // 150 - 75 = 75
+      // Refund = 125 * 0.4 = 50 (floored)
+      economy.buyTower('laser'); // 150 - 50 = 100
+      economy.upgradeTower('laser', 1); // 100 - 75 = 25
       const refund = economy.sellTower('laser', 2);
-      expect(refund).toBe(62); // floor(125 * 0.5) = 62
-      expect(economy.getCredits()).toBe(75 + 62);
+      expect(refund).toBe(50); // floor(125 * 0.4) = 50
+      expect(economy.getCredits()).toBe(25 + 50);
     });
 
-    it('should refund 50% of total invested for tier 3 tower', () => {
+    it('should refund 40% of total invested for tier 3 tower', () => {
       // Laser: baseCost 50 + upgrade[0] 75 + upgrade[1] 100 = 225 invested
-      // Refund = 225 * 0.5 = 112 (floored)
-      economy.addCredits(100); // 300 total for buying+upgrading
-      economy.buyTower('laser'); // 300 - 50 = 250
-      economy.upgradeTower('laser', 1); // 250 - 75 = 175
-      economy.upgradeTower('laser', 2); // 175 - 100 = 75
+      // Refund = 225 * 0.4 = 90 (floored)
+      economy.addCredits(100); // 250 total for buying+upgrading
+      economy.buyTower('laser'); // 250 - 50 = 200
+      economy.upgradeTower('laser', 1); // 200 - 75 = 125
+      economy.upgradeTower('laser', 2); // 125 - 100 = 25
       const refund = economy.sellTower('laser', 3);
-      expect(refund).toBe(112); // floor(225 * 0.5)
-      expect(economy.getCredits()).toBe(75 + 112);
+      expect(refund).toBe(90); // floor(225 * 0.4)
+      expect(economy.getCredits()).toBe(25 + 90);
     });
 
     it('should handle missile tower sell at tier 3 correctly', () => {
-      // Missile: baseCost 75 + upgrade[0] 112 + upgrade[1] 150 = 337 invested
-      // Refund = 337 * 0.5 = 168 (floored)
-      economy.addCredits(200); // 400 total
-      economy.buyTower('missile'); // 400 - 75 = 325
-      economy.upgradeTower('missile', 1); // 325 - 112 = 213
-      economy.upgradeTower('missile', 2); // 213 - 150 = 63
+      // Missile: baseCost 75 + upgrade[0] 105 + upgrade[1] 120 = 300 invested
+      // Refund = 300 * 0.4 = 120 (floored)
+      economy.addCredits(200); // 350 total
+      economy.buyTower('missile'); // 350 - 75 = 275
+      economy.upgradeTower('missile', 1); // 275 - 105 = 170
+      economy.upgradeTower('missile', 2); // 170 - 120 = 50
       const refund = economy.sellTower('missile', 3);
-      expect(refund).toBe(168); // floor(337 * 0.5)
-      expect(economy.getCredits()).toBe(63 + 168);
+      expect(refund).toBe(120); // floor(300 * 0.4)
+      expect(economy.getCredits()).toBe(50 + 120);
     });
 
     it('should return 0 for invalid tower key', () => {
       const refund = economy.sellTower('nonexistent', 1);
       expect(refund).toBe(0);
-      expect(economy.getCredits()).toBe(200);
+      expect(economy.getCredits()).toBe(150);
     });
   });
 
@@ -370,18 +370,18 @@ describe('EconomyManager', () => {
 
   describe('credits cannot go negative', () => {
     it('should never allow credits to drop below zero via spendCredits', () => {
-      economy.spendCredits(201);
-      expect(economy.getCredits()).toBe(200);
+      economy.spendCredits(151);
+      expect(economy.getCredits()).toBe(150);
     });
 
     it('should never allow credits to drop below zero via buyTower', () => {
-      economy.spendCredits(195); // down to 5
+      economy.spendCredits(145); // down to 5
       economy.buyTower('laser'); // costs 50
       expect(economy.getCredits()).toBe(5);
     });
 
     it('should never allow credits to drop below zero via upgradeTower', () => {
-      economy.spendCredits(195); // down to 5
+      economy.spendCredits(145); // down to 5
       economy.upgradeTower('laser', 1); // costs 75
       expect(economy.getCredits()).toBe(5);
     });
@@ -393,25 +393,25 @@ describe('EconomyManager', () => {
 
   describe('stats tracking', () => {
     it('should track all economy activity accurately', () => {
-      // Start: 200 credits (totalEarned = 200)
-      economy.addCredits(50); // Kill reward: totalEarned=250, totalFromKills=50
-      economy.update(1000); // Passive: +5, totalEarned=255, totalFromPassive=5
+      // Start: 150 credits (totalEarned = 150)
+      economy.addCredits(50); // Kill reward: totalEarned=200, totalFromKills=50
+      economy.update(1000); // Passive: +2, totalEarned=202, totalFromPassive=2
       economy.buyTower('laser'); // Spend 50: totalSpent=50
       economy.upgradeTower('laser', 1); // Spend 75: totalSpent=125
-      economy.sellTower('laser', 2); // Refund 62: totalEarned=317
+      economy.sellTower('laser', 2); // Refund 50: totalEarned=252
 
       const stats = economy.getStats();
-      expect(stats.totalEarned).toBe(200 + 50 + 5 + 62); // 317
+      expect(stats.totalEarned).toBe(150 + 50 + 2 + 50); // 252
       expect(stats.totalSpent).toBe(50 + 75); // 125
       expect(stats.totalFromKills).toBe(50);
-      expect(stats.totalFromPassive).toBe(5);
+      expect(stats.totalFromPassive).toBe(2);
     });
 
     it('should not count failed purchases in stats', () => {
-      economy.spendCredits(200); // spend all
+      economy.spendCredits(150); // spend all
       economy.buyTower('laser'); // should fail
       const stats = economy.getStats();
-      expect(stats.totalSpent).toBe(200);
+      expect(stats.totalSpent).toBe(150);
     });
   });
 
@@ -424,14 +424,14 @@ describe('EconomyManager', () => {
       const handler = vi.fn();
       economy.on('credits-changed', handler);
       economy.addCredits(10);
-      expect(handler).toHaveBeenCalledWith(210);
+      expect(handler).toHaveBeenCalledWith(160);
     });
 
     it('should fire when credits are spent', () => {
       const handler = vi.fn();
       economy.on('credits-changed', handler);
       economy.spendCredits(10);
-      expect(handler).toHaveBeenCalledWith(190);
+      expect(handler).toHaveBeenCalledWith(140);
     });
 
     it('should NOT fire when spending fails', () => {
@@ -444,14 +444,14 @@ describe('EconomyManager', () => {
     it('should fire when passive income adds whole credits', () => {
       const handler = vi.fn();
       economy.on('credits-changed', handler);
-      economy.update(1000); // adds 5 credits
-      expect(handler).toHaveBeenCalledWith(205);
+      economy.update(1000); // adds 2 credits
+      expect(handler).toHaveBeenCalledWith(152);
     });
 
     it('should NOT fire when passive income is still fractional', () => {
       const handler = vi.fn();
       economy.on('credits-changed', handler);
-      // 5 credits/sec * 16ms = 0.08, no whole credit yet
+      // 2 credits/sec * 16ms = 0.032, no whole credit yet
       economy.update(16);
       expect(handler).not.toHaveBeenCalled();
     });
@@ -460,22 +460,22 @@ describe('EconomyManager', () => {
       const handler = vi.fn();
       economy.on('credits-changed', handler);
       economy.buyTower('laser');
-      expect(handler).toHaveBeenCalledWith(150);
+      expect(handler).toHaveBeenCalledWith(100);
     });
 
     it('should fire when a tower is sold', () => {
-      economy.buyTower('laser'); // 200 - 50 = 150
+      economy.buyTower('laser'); // 150 - 50 = 100
       const handler = vi.fn();
       economy.on('credits-changed', handler);
-      economy.sellTower('laser', 1); // +25 = 175
-      expect(handler).toHaveBeenCalledWith(175);
+      economy.sellTower('laser', 1); // +20 = 120
+      expect(handler).toHaveBeenCalledWith(120);
     });
 
     it('should fire when a tower is upgraded', () => {
       const handler = vi.fn();
       economy.on('credits-changed', handler);
-      economy.upgradeTower('laser', 1); // 200 - 75 = 125
-      expect(handler).toHaveBeenCalledWith(125);
+      economy.upgradeTower('laser', 1); // 150 - 75 = 75
+      expect(handler).toHaveBeenCalledWith(75);
     });
 
     it('should NOT fire for zero addCredits', () => {
@@ -492,32 +492,31 @@ describe('EconomyManager', () => {
 
   describe('complex scenarios', () => {
     it('should handle a full game cycle: earn, buy, upgrade, sell', () => {
-      // Start with 200
-      economy.addCredits(100); // Kill rewards -> 300
-      economy.update(2000); // 2 sec passive -> +10 -> 310
+      // Start with 150
+      economy.addCredits(100); // Kill rewards -> 250
+      economy.update(2000); // 2 sec passive -> +4 -> 254
 
-      economy.buyTower('cryo'); // -60 -> 250
-      expect(economy.getCredits()).toBe(250);
+      economy.buyTower('cryo'); // -50 -> 204
+      expect(economy.getCredits()).toBe(204);
 
-      economy.upgradeTower('cryo', 1); // -90 -> 160
-      expect(economy.getCredits()).toBe(160);
+      economy.upgradeTower('cryo', 1); // -70 -> 134
+      expect(economy.getCredits()).toBe(134);
 
-      // Sell cryo at tier 2: (60 + 90) * 0.5 = 75
+      // Sell cryo at tier 2: (50 + 70) * 0.4 = 48
       const refund = economy.sellTower('cryo', 2);
-      expect(refund).toBe(75);
-      expect(economy.getCredits()).toBe(235);
+      expect(refund).toBe(48);
+      expect(economy.getCredits()).toBe(182);
     });
 
     it('should handle buying multiple towers in sequence', () => {
-      economy.buyTower('laser'); // -50 -> 150
       economy.buyTower('laser'); // -50 -> 100
-      economy.buyTower('cryo'); // -60 -> 40
-      expect(economy.getCredits()).toBe(40);
+      economy.buyTower('laser'); // -50 -> 50
+      economy.buyTower('cryo'); // -50 -> 0
+      expect(economy.getCredits()).toBe(0);
 
       // Cannot afford another cryo
       expect(economy.canBuyTower('cryo')).toBe(false);
-      // But can still afford a... nothing at 40 credits.
-      // Laser costs 50, so can't afford it either
+      // Cannot afford a laser either
       expect(economy.canBuyTower('laser')).toBe(false);
     });
 
