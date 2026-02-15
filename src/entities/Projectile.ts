@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { Tower } from './Tower';
+import { calculateDepth } from '../utils/elevation';
 
 export interface ProjectileConfig {
   startX: number;
@@ -41,6 +42,10 @@ export class Projectile extends Phaser.GameObjects.Container {
     this.add(this.bullet);
 
     scene.add.existing(this);
+
+    // Set initial depth for isometric rendering (projectiles render above entities at same elevation)
+    const sourceTowerElevation = config.sourceTower ? ((config.sourceTower as any).elevation ?? 0) : 0;
+    this.setDepth(calculateDepth(this.y, sourceTowerElevation) + 50);
 
     // Register an update callback so the projectile drives itself each frame.
     // We store the listener reference so we can clean up on destroy.
@@ -89,6 +94,10 @@ export class Projectile extends Phaser.GameObjects.Container {
     const ratio = Math.min(step / dist, 1);
     this.x += dx * ratio;
     this.y += dy * ratio;
+
+    // Update depth for isometric sorting as Y position changes
+    const sourceTowerElevation = this.config.sourceTower ? ((this.config.sourceTower as any).elevation ?? 0) : 0;
+    this.setDepth(calculateDepth(this.y, sourceTowerElevation) + 50);
 
     // Trail effect: spawn a small fading circle every few ms
     this.trailTimer += delta;
