@@ -16,6 +16,7 @@ You are the **orchestrator**. You do **zero** implementation work. You dispatch 
 4. Read subagent output files to verify completion. Do not ask subagents for verbose reports.
 5. After each phase, run `npx tsc --noEmit` to verify type safety before advancing.
 6. Commit after each task (subagent should commit, or you commit on their behalf).
+7. **Use the specified model tier for each agent** to optimize cost and capability.
 
 ## Project Context
 
@@ -23,6 +24,19 @@ You are the **orchestrator**. You do **zero** implementation work. You dispatch 
 - **Design doc:** `docs/plans/2026-02-15-isometric-elevation-rebalance-design.md`
 - **Implementation plan:** `docs/plans/2026-02-15-v2-implementation-plan.md`
 - **Commands:** `npm run dev` (dev server), `npm run build` (build), `npm run test` (vitest), `npx tsc --noEmit` (type check)
+- **Version:** This implementation constitutes v2.0.0 of Earth Defense. When all phases are complete and verified, bump `package.json` version to `2.0.0` and update the changelog.
+
+## Model Tier Strategy
+
+Each subagent is assigned a model tier based on task complexity. This optimizes token cost (~55% savings vs all-Opus) while ensuring the hardest tasks get the strongest model.
+
+| Tier | Model | Use For |
+|------|-------|---------|
+| **Heavy** | `opus` | Architectural rewrites, multi-system coordination, complex math |
+| **Medium** | `sonnet` | New modules with clear specs, moderate logic, test writing |
+| **Light** | `haiku` | Config number changes, repetitive content generation, simple file ops |
+
+---
 
 ## Phase Execution
 
@@ -30,7 +44,7 @@ You are the **orchestrator**. You do **zero** implementation work. You dispatch 
 
 Launch 2 agents in parallel:
 
-**Agent T0A** (subagent_type: general-purpose):
+**Agent T0A** (subagent_type: general-purpose, model: **haiku**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T0A: Isomer.js Standalone Mockup".
 Read src/config/maps.ts for the grid arrays and src/systems/TilemapRenderer.ts for tile colors.
@@ -38,7 +52,7 @@ Implement the task exactly as described. Create tools/iso-mockup.html.
 Commit when done. Report: file path only.
 ```
 
-**Agent T0B** (subagent_type: general-purpose):
+**Agent T0B** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T0B: Phaser Isometric Preview Scene".
 Read src/systems/AssetGenerator.ts for the existing pattern.
@@ -56,7 +70,7 @@ Commit when done. Report: file paths only.
 
 **First, launch Agent T1A alone** (other Phase 1 tasks depend on its interfaces):
 
-**Agent T1A** (subagent_type: general-purpose):
+**Agent T1A** (subagent_type: general-purpose, model: **haiku**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T1A: Config Interfaces and Constants".
 Read src/config/maps.ts and src/config/levels.ts.
@@ -67,7 +81,7 @@ Report: file paths + test result + tsc result.
 
 **After T1A completes, launch T1B + T1C + T1D in parallel:**
 
-**Agent T1B** (subagent_type: general-purpose):
+**Agent T1B** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T1B: Coordinate Utility Module".
 Read src/config/maps.ts for ISO_TILE_WIDTH, ISO_TILE_HEIGHT, ELEVATION_PX constants.
@@ -76,7 +90,7 @@ Write tests first, then implement, verify tests pass, commit.
 Report: file paths + test result.
 ```
 
-**Agent T1C** (subagent_type: general-purpose):
+**Agent T1C** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T1C: Elevation Utility Module".
 Read src/config/maps.ts for DEPTH_BAND constant.
@@ -85,7 +99,7 @@ Write tests first, then implement, verify tests pass, commit.
 Report: file paths + test result.
 ```
 
-**Agent T1D** (subagent_type: general-purpose):
+**Agent T1D** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T1D: Line-of-Sight Utility Module".
 Create src/utils/line-of-sight.ts and src/utils/__tests__/line-of-sight.test.ts.
@@ -101,7 +115,7 @@ Report: file paths + test result.
 
 Launch all 4 agents in parallel:
 
-**Agent T2A** (subagent_type: general-purpose):
+**Agent T2A** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T2A: Isometric Asset Generation".
 Read src/systems/AssetGenerator.ts for the existing generation pattern.
@@ -112,7 +126,7 @@ Add WORLD_PALETTES for Desert/Urban/Alien themes.
 Commit when done. Report: file path + texture key count.
 ```
 
-**Agent T2B** (subagent_type: general-purpose):
+**Agent T2B** (subagent_type: general-purpose, model: **haiku**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T2B: Balance Config Changes".
 Read and modify src/config/towers.ts, src/config/enemies.ts, src/config/levels.ts.
@@ -125,7 +139,7 @@ Update src/systems/__tests__/EconomyManager.test.ts to match new values.
 Run tests, commit. Report: file paths + test result.
 ```
 
-**Agent T2C** (subagent_type: general-purpose):
+**Agent T2C** (subagent_type: general-purpose, model: **haiku**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T2C: Level Content".
 Read src/config/maps.ts for the MapConfig interface, TileType enum, and existing map format.
@@ -138,7 +152,7 @@ MAP_COLS and MAP_ROWS should no longer be global constants -- derive from grid d
 Commit when done. Report: file paths + level count.
 ```
 
-**Agent T2D** (subagent_type: general-purpose):
+**Agent T2D** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T2D: Camera Panning System".
 Create src/systems/CameraController.ts and src/systems/__tests__/CameraController.test.ts.
@@ -158,7 +172,7 @@ Launch T3A + T3B in parallel, then T3C + T3D in parallel:
 
 **Batch 1 (parallel):**
 
-**Agent T3A** (subagent_type: general-purpose):
+**Agent T3A** (subagent_type: general-purpose, model: **opus**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T3A: TilemapRenderer Isometric Rewrite".
 Read src/systems/TilemapRenderer.ts (current implementation), src/utils/coordinates.ts, src/utils/elevation.ts, src/config/maps.ts.
@@ -175,7 +189,7 @@ Full rewrite of TilemapRenderer for isometric projection:
 Commit when done. Report: file path.
 ```
 
-**Agent T3B** (subagent_type: general-purpose):
+**Agent T3B** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T3B: PathFollower Elevation Support".
 Read src/systems/PathFollower.ts, src/utils/elevation.ts.
@@ -190,7 +204,7 @@ Commit when done. Report: file path.
 
 **After Batch 1, launch Batch 2 (parallel):**
 
-**Agent T3C** (subagent_type: general-purpose):
+**Agent T3C** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T3C: TowerManager Elevation Support".
 Read src/systems/TowerManager.ts, src/utils/elevation.ts, src/utils/line-of-sight.ts.
@@ -202,7 +216,7 @@ Update TowerManager:
 Commit when done. Report: file path.
 ```
 
-**Agent T3D** (subagent_type: general-purpose):
+**Agent T3D** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T3D: EnemySpawner Elevation Support".
 Read src/systems/EnemySpawner.ts, src/config/maps.ts.
@@ -218,7 +232,7 @@ Commit when done. Report: file path.
 
 ### Phase 4: Entity Updates (3 agents in parallel)
 
-**Agent T4A** (subagent_type: general-purpose):
+**Agent T4A** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T4A: Tower Entity".
 Read src/entities/Tower.ts, src/utils/coordinates.ts, src/utils/elevation.ts.
@@ -226,7 +240,7 @@ Update Tower: accept elevation in constructor, use tileToWorld() for positioning
 Commit. Report: file path.
 ```
 
-**Agent T4B** (subagent_type: general-purpose):
+**Agent T4B** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T4B: Enemy Entity".
 Read src/entities/Enemy.ts, src/utils/elevation.ts.
@@ -234,7 +248,7 @@ Update Enemy: receive elevation from PathFollower update(), set depth with calcu
 Commit. Report: file path.
 ```
 
-**Agent T4C** (subagent_type: general-purpose):
+**Agent T4C** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T4C: Projectile".
 Read src/entities/Projectile.ts, src/utils/elevation.ts.
@@ -250,7 +264,7 @@ Commit. Report: file path.
 
 Launch T5B + T5C in parallel first (independent files), then T5A:
 
-**Agent T5B** (subagent_type: general-purpose):
+**Agent T5B** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T5B: MenuScene World Selector".
 Read src/scenes/MenuScene.ts, src/config/levels.ts.
@@ -258,7 +272,7 @@ Update MenuScene: group levels by world (3 sections), world names, themed color 
 Commit. Report: file path.
 ```
 
-**Agent T5C** (subagent_type: general-purpose):
+**Agent T5C** (subagent_type: general-purpose, model: **sonnet**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T5C: UI Updates".
 Read src/ui/HUD.ts, src/ui/TowerPicker.ts, src/ui/TowerInfoPanel.ts.
@@ -268,7 +282,7 @@ Commit. Report: file paths.
 
 **After T5B + T5C, launch T5A:**
 
-**Agent T5A** (subagent_type: general-purpose):
+**Agent T5A** (subagent_type: general-purpose, model: **opus**):
 ```
 Read docs/plans/2026-02-15-v2-implementation-plan.md, section "Task T5A: GameScene Rewiring".
 Read src/scenes/GameScene.ts and ALL system/entity files to understand current wiring.
@@ -285,7 +299,7 @@ Commit. Report: file path.
 
 ---
 
-### Phase 6: Verification
+### Phase 6: Verification and Version Bump
 
 Run sequentially:
 
@@ -294,7 +308,54 @@ Run sequentially:
 3. `npm run test` -- all tests must pass
 4. `npm run dev` -- manually verify the play-test checklist from the plan
 
-Report results to the user. If any phase fails, dispatch a fix agent for the specific failure.
+**After verification passes, launch version bump agent:**
+
+**Agent T6-VERSION** (subagent_type: general-purpose, model: **haiku**):
+```
+This is the v2.0.0 release of Earth Defense.
+Read package.json for the current version.
+Bump the version to 2.0.0.
+Update CHANGELOG.md (or create it if it doesn't exist) with a v2.0.0 entry summarizing:
+- Isometric rendering with camera panning
+- Full tactical elevation system (range bonus, LOS blocking, speed modifiers, elevation-priced build slots)
+- Economy and tower rebalance
+- 15 levels across 3 themed worlds (Desert Outpost, Urban Ruins, Alien Terrain)
+- Exponential HP scaling
+Commit with message: "release: v2.0.0 -- isometric, elevation, rebalance, 15 levels"
+Report: file paths only.
+```
+
+Report results to the user. If any verification step fails, dispatch a fix agent for the specific failure.
+
+---
+
+## Model Assignment Summary
+
+| Task | Model | Rationale |
+|------|-------|-----------|
+| T0A (Isomer mockup) | haiku | Templated HTML with embedded data |
+| T0B (Phaser preview) | sonnet | New Phaser scene with iso API |
+| T1A (Config interfaces) | haiku | Interface additions + number defaults |
+| T1B (Coordinates) | sonnet | Math module with tests |
+| T1C (Elevation utils) | sonnet | Math module with tests |
+| T1D (Line-of-sight) | sonnet | Algorithm implementation with tests |
+| T2A (Asset generation) | sonnet | Graphics API code following existing patterns |
+| T2B (Balance numbers) | haiku | Numeric value changes in config files |
+| T2C (15 level maps) | haiku | Repetitive 2D array content generation |
+| T2D (Camera controller) | sonnet | New system module with input handling |
+| T3A (TilemapRenderer) | **opus** | Full architectural rewrite, highest complexity |
+| T3B (PathFollower) | sonnet | Moderate enhancement to existing system |
+| T3C (TowerManager) | sonnet | Moderate enhancement with LOS integration |
+| T3D (EnemySpawner) | sonnet | Minor enhancement, data passthrough |
+| T4A (Tower entity) | sonnet | Positioning and depth changes |
+| T4B (Enemy entity) | sonnet | Positioning and depth changes |
+| T4C (Projectile) | sonnet | Minor depth sorting update |
+| T5A (GameScene) | **opus** | Multi-system orchestrator rewiring |
+| T5B (MenuScene) | sonnet | UI restructuring |
+| T5C (UI updates) | sonnet | Minor display changes across 3 files |
+| T6-VERSION (Version bump) | haiku | Simple file edits |
+
+**Cost profile:** 2 opus, 14 sonnet, 5 haiku (~55% savings vs all-opus)
 
 ---
 
@@ -306,3 +367,4 @@ If a subagent fails:
 3. If dependency issue: fix the upstream file first, then re-run the failed agent
 4. If agent's own issue: dispatch a new agent with the error context and the original task description
 5. Never attempt to fix the issue yourself -- always dispatch a subagent
+6. For fix agents, use the same model tier as the original task unless the failure suggests higher complexity
