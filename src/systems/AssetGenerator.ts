@@ -1010,50 +1010,158 @@ export class AssetGenerator {
   }
 
   // -------------------------------------------------------------------
-  //  Isometric diamond tile textures (128x64)
+  //  Isometric diamond tile textures (128x64) with world palettes
   // -------------------------------------------------------------------
 
   private static generateIsoDiamondTiles(scene: Phaser.Scene): void {
     const ISO_WIDTH = 128;
     const ISO_HEIGHT = 64;
+    const CLIFF_HEIGHT = 16;
 
-    // Color mapping from TilemapRenderer
-    const tileColors: Record<string, number> = {
-      ground: 0x1a1a2e,
-      path: 0x2a2a3e,
-      build: 0x2e3a2e,
-      spawn: 0x44ff44,
-      base: 0xff4444,
+    // World-themed color palettes
+    const WORLD_PALETTES = {
+      1: { ground: 0x2a1f0a, path: 0x3a2f1a, build: 0x2e3a1e, accent: 0x88aa44 }, // Desert
+      2: { ground: 0x1a1a2a, path: 0x2a2a3a, build: 0x2a2a3e, accent: 0x4488cc }, // Urban
+      3: { ground: 0x1a0a2a, path: 0x2a1a3a, build: 0x2a1e3a, accent: 0xaa44ff }, // Alien
     };
 
-    const tileNames: Array<keyof typeof tileColors> = ['ground', 'path', 'build', 'spawn', 'base'];
+    // Generate tiles for each world
+    for (const worldId of [1, 2, 3]) {
+      const palette = WORLD_PALETTES[worldId as keyof typeof WORLD_PALETTES];
 
-    for (const tileName of tileNames) {
-      const g = scene.make.graphics({} as any);
-      const color = tileColors[tileName];
+      const tileColors: Record<string, number> = {
+        ground: palette.ground,
+        path: palette.path,
+        build: palette.build,
+        spawn: 0x44ff44, // Spawn tile always green
+        base: 0xff4444,  // Base tile always red
+      };
 
-      // Draw diamond shape
-      g.fillStyle(color, 1);
-      g.beginPath();
-      g.moveTo(64, 0);
-      g.lineTo(128, 32);
-      g.lineTo(64, 64);
-      g.lineTo(0, 32);
-      g.closePath();
-      g.fillPath();
+      const tileNames: Array<keyof typeof tileColors> = ['ground', 'path', 'build', 'spawn', 'base'];
 
-      // Add a subtle border for definition
-      g.lineStyle(1, color + 0x222222, 0.3);
-      g.beginPath();
-      g.moveTo(64, 0);
-      g.lineTo(128, 32);
-      g.lineTo(64, 64);
-      g.lineTo(0, 32);
-      g.closePath();
-      g.strokePath();
+      for (const tileName of tileNames) {
+        const g = scene.make.graphics({} as any);
+        const color = tileColors[tileName];
 
-      g.generateTexture(`iso-tile-${tileName}`, ISO_WIDTH, ISO_HEIGHT);
-      g.destroy();
+        // Draw diamond shape
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.moveTo(64, 0);
+        g.lineTo(128, 32);
+        g.lineTo(64, 64);
+        g.lineTo(0, 32);
+        g.closePath();
+        g.fillPath();
+
+        // Add subtle texture gradient (top lighter than bottom)
+        const lighterColor = color + 0x0a0a0a;
+        g.fillStyle(lighterColor, 0.15);
+        g.beginPath();
+        g.moveTo(64, 0);
+        g.lineTo(128, 32);
+        g.lineTo(64, 48);
+        g.lineTo(0, 32);
+        g.closePath();
+        g.fillPath();
+
+        // Add subtle border for definition
+        const borderColor = color - 0x101010;
+        g.lineStyle(1, borderColor, 0.5);
+        g.beginPath();
+        g.moveTo(64, 0);
+        g.lineTo(128, 32);
+        g.lineTo(64, 64);
+        g.lineTo(0, 32);
+        g.closePath();
+        g.strokePath();
+
+        // Generate texture with world prefix
+        const textureKey = worldId === 1 ? `iso-tile-${tileName}` : `iso-tile-${tileName}-w${worldId}`;
+        g.generateTexture(textureKey, ISO_WIDTH, ISO_HEIGHT);
+        g.destroy();
+      }
+    }
+
+    // Generate cliff face textures (direction: N, S, E, W)
+    const cliffDirections = ['N', 'S', 'E', 'W'] as const;
+
+    for (const worldId of [1, 2, 3]) {
+      const palette = WORLD_PALETTES[worldId as keyof typeof WORLD_PALETTES];
+
+      for (const direction of cliffDirections) {
+        const g = scene.make.graphics({} as any);
+
+        // Base cliff color (darker than ground)
+        const cliffColor = palette.ground - 0x0f0f0f;
+
+        if (direction === 'N' || direction === 'S') {
+          // North/South cliff faces (128x16) - full width
+          g.fillStyle(cliffColor, 1);
+          g.fillRect(0, 0, ISO_WIDTH, CLIFF_HEIGHT);
+
+          // Add vertical striations
+          g.lineStyle(1, cliffColor - 0x0a0a0a, 0.4);
+          for (let x = 8; x < ISO_WIDTH; x += 12) {
+            g.beginPath();
+            g.moveTo(x, 0);
+            g.lineTo(x, CLIFF_HEIGHT);
+            g.strokePath();
+          }
+
+          // Top edge highlight
+          g.lineStyle(1, cliffColor + 0x0a0a0a, 0.3);
+          g.beginPath();
+          g.moveTo(0, 0);
+          g.lineTo(ISO_WIDTH, 0);
+          g.strokePath();
+
+          // Bottom edge shadow
+          g.lineStyle(1, cliffColor - 0x0a0a0a, 0.5);
+          g.beginPath();
+          g.moveTo(0, CLIFF_HEIGHT - 1);
+          g.lineTo(ISO_WIDTH, CLIFF_HEIGHT - 1);
+          g.strokePath();
+        } else {
+          // East/West cliff faces (128x16) - angled edges
+          g.fillStyle(cliffColor, 1);
+          g.beginPath();
+          if (direction === 'E') {
+            // East face: slanted right edge
+            g.moveTo(0, 0);
+            g.lineTo(ISO_WIDTH, 0);
+            g.lineTo(ISO_WIDTH - 8, CLIFF_HEIGHT);
+            g.lineTo(8, CLIFF_HEIGHT);
+          } else {
+            // West face: slanted left edge
+            g.moveTo(8, 0);
+            g.lineTo(ISO_WIDTH - 8, 0);
+            g.lineTo(ISO_WIDTH, CLIFF_HEIGHT);
+            g.lineTo(0, CLIFF_HEIGHT);
+          }
+          g.closePath();
+          g.fillPath();
+
+          // Add diagonal striations
+          g.lineStyle(1, cliffColor - 0x0a0a0a, 0.4);
+          for (let i = 0; i < 10; i++) {
+            const offset = i * 16;
+            g.beginPath();
+            if (direction === 'E') {
+              g.moveTo(offset, 0);
+              g.lineTo(offset - 8, CLIFF_HEIGHT);
+            } else {
+              g.moveTo(offset, 0);
+              g.lineTo(offset + 8, CLIFF_HEIGHT);
+            }
+            g.strokePath();
+          }
+        }
+
+        // Generate cliff texture with world prefix
+        const textureKey = worldId === 1 ? `iso-cliff-${direction}` : `iso-cliff-${direction}-w${worldId}`;
+        g.generateTexture(textureKey, ISO_WIDTH, CLIFF_HEIGHT);
+        g.destroy();
+      }
     }
   }
 }
