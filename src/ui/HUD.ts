@@ -82,7 +82,7 @@ export class HUD extends Phaser.Events.EventEmitter {
     this.enemiesText.setDepth(HUD.DEPTH);
 
     // ---- Lives display (center-right area) ----
-    this.livesText = scene.add.text(700, 8, 'Lives: 10/10', {
+    this.livesText = scene.add.text(730, 8, 'Lives: 10/10', {
       fontFamily: HUD.FONT_FAMILY,
       fontSize: '16px',
       color: HUD.LABEL_COLOR,
@@ -91,7 +91,7 @@ export class HUD extends Phaser.Events.EventEmitter {
     this.livesText.setDepth(HUD.DEPTH);
 
     // ---- Credits display (right area) ----
-    this.creditsText = scene.add.text(840, 8, 'Credits: 200', {
+    this.creditsText = scene.add.text(860, 8, 'Credits: 200', {
       fontFamily: HUD.FONT_FAMILY,
       fontSize: '16px',
       color: HUD.LABEL_COLOR,
@@ -100,11 +100,12 @@ export class HUD extends Phaser.Events.EventEmitter {
     this.creditsText.setDepth(HUD.DEPTH);
 
     // ---- Level name display (center area) ----
-    this.levelNameText = scene.add.text(400, 8, '', {
+    this.levelNameText = scene.add.text(350, 8, '', {
       fontFamily: HUD.FONT_FAMILY,
-      fontSize: '16px',
+      fontSize: '13px',
       color: HUD.VALUE_COLOR,
     });
+    this.levelNameText.setOrigin(0.5, 0);
     this.levelNameText.setScrollFactor(0);
     this.levelNameText.setDepth(HUD.DEPTH);
 
@@ -177,11 +178,12 @@ export class HUD extends Phaser.Events.EventEmitter {
 
   /**
    * Update the level name displayed in the top bar.
-   * Optionally include the world name.
+   * Optionally include the world name in abbreviated format.
    */
   updateLevelName(level: number, name: string, worldName?: string): void {
     if (worldName) {
-      this.levelNameText.setText(`${worldName} - Level ${level}: ${name}`);
+      const abbrevWorld = worldName.split(' ')[0];
+      this.levelNameText.setText(`${abbrevWorld}-${level}: ${name}`);
     } else {
       this.levelNameText.setText(`Level ${level}: ${name}`);
     }
