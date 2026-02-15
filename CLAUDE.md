@@ -54,3 +54,24 @@ GitHub Actions workflow (`.github/workflows/deploy.yml`) builds and pushes `dist
 ## Depth Layering
 
 Background: -10 → Tiles/Towers: 0 → Enemies/Projectiles: default → UI: 1000 → TowerInfoPanel: 1001
+
+## Development Artifacts
+
+Plans, design docs, and orchestrator prompts in `docs/plans/` are **ephemeral development artifacts**. Do NOT commit them to git. They live in the worktree for reference during development but are not part of the codebase.
+
+## Orchestrator Pattern
+
+All multi-step implementation work follows this pattern:
+
+1. **Design doc** (`docs/plans/YYYY-MM-DD-<topic>-design.md`) -- brainstormed with user, not committed.
+2. **Orchestrator prompt** (`docs/plans/YYYY-MM-DD-<topic>-orchestrator.md`) -- references the design doc, not committed.
+3. **Execution:** User starts a new context window (`/new`), then `@`-references the orchestrator prompt file. The orchestrator:
+   - Does **zero implementation** itself -- all code via subagents.
+   - Invokes **phaser-vite** skill before any work, and includes it in every subagent prompt.
+   - Invokes **executing-plans** and **dispatching-parallel-agents** skills.
+   - Runs pre-flight checks (`tsc --noEmit`, `npm run test`).
+   - Dispatches subagents in phases, verifies after each phase.
+   - Runs visual smoke test with **webapp-testing** skill at the end.
+   - Reports final status and asks user for next steps.
+
+The orchestrator prompt should include an `@`-path reference to the design doc on its first line so both files load into context when the user `@`-references the orchestrator.
