@@ -50,7 +50,7 @@ export class Tower extends Phaser.GameObjects.Container {
     this.rangeIndicator.setDepth(999);
 
     // -- Ground shadow (ellipse at tile center, rendered behind tower body) --
-    const shadow = scene.add.ellipse(0, 0, 48, 24, 0x000000, 0.15);
+    const shadow = scene.add.ellipse(0, 0, 36, 18, 0x000000, 0.12);
     this.add(shadow);
 
     // -- Tower body (sprite if directional texture exists, fallback to colored circle) --
@@ -333,7 +333,7 @@ export class Tower extends Phaser.GameObjects.Container {
     const startX = -totalWidth / 2;
 
     for (let i = 0; i < this.currentTier; i++) {
-      const pip = this.scene.add.arc(startX + i * spacing, 26, pipRadius, 0, 360, false, 0xffffff, 0.9);
+      const pip = this.scene.add.arc(startX + i * spacing, 6, pipRadius, 0, 360, false, 0xffffff, 0.9);
       this.add(pip);
       this.tierPips.push(pip);
     }

@@ -71,10 +71,14 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
     const tierNum = tower.currentTier;
 
     // ---- Calculate panel position (offset to stay on screen) ----
+    // Convert tower world position to screen coordinates (container is in screen space)
+    const camera = this.scene.cameras.main;
+    const screenX = tower.x - camera.scrollX;
+    const screenY = tower.y - camera.scrollY;
     const panelW = TowerInfoPanel.PANEL_WIDTH;
     const panelH = TowerInfoPanel.PANEL_HEIGHT;
-    let px = tower.x + 50;
-    let py = tower.y - panelH / 2;
+    let px = screenX + 50;
+    let py = screenY - panelH / 2;
 
     // Keep panel within canvas bounds (1024x768)
     if (px + panelW / 2 > 1024) {
@@ -266,9 +270,9 @@ export class TowerInfoPanel extends Phaser.Events.EventEmitter {
       this.clickAwayHandler = (pointer: Phaser.Input.Pointer) => {
         if (!this.container) return;
 
-        // Check if click was inside the panel bounds
-        const localX = pointer.worldX - this.container.x;
-        const localY = pointer.worldY - this.container.y;
+        // Check if click was inside the panel bounds (use screen coords since container is in screen space)
+        const localX = pointer.x - this.container.x;
+        const localY = pointer.y - this.container.y;
 
         if (
           Math.abs(localX) > panelW / 2 ||
