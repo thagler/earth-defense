@@ -28,6 +28,22 @@ export const ENEMY_SPRITE_SIZES: Record<string, { width: number; height: number 
  */
 export class AssetGenerator {
   // -------------------------------------------------------------------
+  //  Color utilities
+  // -------------------------------------------------------------------
+
+  /**
+   * Safe per-component color adjustment (clamps each channel 0-255).
+   * Prevents underflow/overflow when adjusting colors by adding or subtracting
+   * values from each RGB component independently.
+   */
+  private static adjustColor(color: number, amount: number): number {
+    const r = Math.max(0, Math.min(255, ((color >> 16) & 0xFF) + amount));
+    const g = Math.max(0, Math.min(255, ((color >> 8) & 0xFF) + amount));
+    const b = Math.max(0, Math.min(255, (color & 0xFF) + amount));
+    return (r << 16) | (g << 8) | b;
+  }
+
+  // -------------------------------------------------------------------
   //  Public entry point
   // -------------------------------------------------------------------
 
@@ -2130,7 +2146,7 @@ export class AssetGenerator {
         g.fillPath();
 
         // Add subtle texture gradient (top lighter than bottom)
-        const lighterColor = color + 0x0a0a0a;
+        const lighterColor = AssetGenerator.adjustColor(color, 10);
         g.fillStyle(lighterColor, 0.15);
         g.beginPath();
         g.moveTo(64, 0);
@@ -2141,7 +2157,7 @@ export class AssetGenerator {
         g.fillPath();
 
         // Add subtle border for definition (reduced alpha for ground tiles)
-        const borderColor = color - 0x101010;
+        const borderColor = AssetGenerator.adjustColor(color, -16);
         const borderAlpha = tileName === 'ground' ? 0.15 : 0.5;
         g.lineStyle(1, borderColor, borderAlpha);
         g.beginPath();
@@ -2210,7 +2226,7 @@ export class AssetGenerator {
         const g = scene.make.graphics({} as any);
 
         // Base cliff color (darker than ground)
-        const cliffColor = palette.ground - 0x0f0f0f;
+        const cliffColor = AssetGenerator.adjustColor(palette.ground, -15);
 
         if (direction === 'N' || direction === 'S') {
           // North/South cliff faces (128x16) - full width
@@ -2218,7 +2234,7 @@ export class AssetGenerator {
           g.fillRect(0, 0, ISO_WIDTH, CLIFF_HEIGHT);
 
           // Add vertical striations
-          g.lineStyle(1, cliffColor - 0x0a0a0a, 0.4);
+          g.lineStyle(1, AssetGenerator.adjustColor(cliffColor, -10), 0.4);
           for (let x = 8; x < ISO_WIDTH; x += 12) {
             g.beginPath();
             g.moveTo(x, 0);
@@ -2227,14 +2243,14 @@ export class AssetGenerator {
           }
 
           // Top edge highlight
-          g.lineStyle(1, cliffColor + 0x0a0a0a, 0.3);
+          g.lineStyle(1, AssetGenerator.adjustColor(cliffColor, 10), 0.3);
           g.beginPath();
           g.moveTo(0, 0);
           g.lineTo(ISO_WIDTH, 0);
           g.strokePath();
 
           // Bottom edge shadow
-          g.lineStyle(1, cliffColor - 0x0a0a0a, 0.5);
+          g.lineStyle(1, AssetGenerator.adjustColor(cliffColor, -10), 0.5);
           g.beginPath();
           g.moveTo(0, CLIFF_HEIGHT - 1);
           g.lineTo(ISO_WIDTH, CLIFF_HEIGHT - 1);
@@ -2260,7 +2276,7 @@ export class AssetGenerator {
           g.fillPath();
 
           // Add diagonal striations
-          g.lineStyle(1, cliffColor - 0x0a0a0a, 0.4);
+          g.lineStyle(1, AssetGenerator.adjustColor(cliffColor, -10), 0.4);
           for (let i = 0; i < 10; i++) {
             const offset = i * 16;
             g.beginPath();
