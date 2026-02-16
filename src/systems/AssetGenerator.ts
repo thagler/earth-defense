@@ -118,30 +118,35 @@ export class AssetGenerator {
     g.lineStyle(1, 0x000000, 0.8);
     switch (dir) {
       case 'south':
-        // Barrel points down toward camera
+        // Barrel points down toward camera (foreshortened, stubby)
         g.fillStyle(light, 1);
-        g.fillRect(cx - 3, cy - 4, 6, 16);
-        g.strokeRect(cx - 3, cy - 4, 6, 16);
+        // Short barrel body below the base
+        g.fillRect(cx - 3, cy + 2, 6, 7);
+        g.strokeRect(cx - 3, cy + 2, 6, 7);
+        // Barrel opening (muzzle) at the tip
+        g.fillStyle(0x111111, 0.9);
+        g.fillEllipse(cx, cy + 9, 6, 4);
+        g.strokeEllipse(cx, cy + 9, 6, 4);
         // Lens glow at tip
         g.fillStyle(0xffffff, 0.9);
-        g.fillCircle(cx, cy + 12, 3);
+        g.fillCircle(cx, cy + 9, 2.5);
         g.fillStyle(color, 0.6);
-        g.fillCircle(cx, cy + 12, 2);
+        g.fillCircle(cx, cy + 9, 1.5);
         break;
       case 'southwest':
-        // Barrel angled down-left
+        // Barrel angled down-left (3/4 view, shorter/thicker)
         g.fillStyle(light, 1);
         g.beginPath();
-        g.moveTo(cx - 2, cy - 5);
-        g.lineTo(cx + 2, cy - 3);
-        g.lineTo(cx - 8, cy + 11);
-        g.lineTo(cx - 12, cy + 9);
+        g.moveTo(cx - 2, cy - 3);
+        g.lineTo(cx + 2, cy - 1);
+        g.lineTo(cx - 4, cy + 6);
+        g.lineTo(cx - 8, cy + 4);
         g.closePath();
         g.fillPath();
         g.strokePath();
         // Lens glow
         g.fillStyle(0xffffff, 0.9);
-        g.fillCircle(cx - 10, cy + 10, 2.5);
+        g.fillCircle(cx - 6, cy + 5, 2.5);
         break;
       case 'west':
         // Barrel points left (side profile)
@@ -316,10 +321,22 @@ export class AssetGenerator {
     g.lineStyle(1, 0x000000, 0.7);
     g.strokeRect(cx - 14, cy + 4, 28, 8);
 
-    // -- Dome body (half-ellipse) --
+    // -- Dome body (isometric: ellipse compressed vertically for 3D view) --
+    // Draw as half-ellipse with isometric proportions (wider than tall)
     g.fillStyle(color, 0.9);
+    const domeY = cy - 4;
     g.beginPath();
-    g.arc(cx, cy, 13, Math.PI, 0);
+    // Upper arc of ellipse using multiple points for smoother curve
+    // Isometric dome: 26px wide, ~16px tall (60% height ratio)
+    for (let angle = Math.PI; angle >= 0; angle -= 0.1) {
+      const px = cx + Math.cos(angle) * 13;
+      const py = domeY + Math.sin(angle) * -8;  // 8px vertical radius (compressed)
+      if (angle === Math.PI) {
+        g.moveTo(px, py);
+      } else {
+        g.lineTo(px, py);
+      }
+    }
     g.lineTo(cx + 13, cy + 4);
     g.lineTo(cx - 13, cy + 4);
     g.closePath();
@@ -327,11 +344,20 @@ export class AssetGenerator {
     g.lineStyle(1, 0x000000, 0.7);
     g.strokePath();
 
-    // -- Dome highlight (glass-like sheen) --
-    g.fillStyle(light, 0.25);
+    // -- Dome highlight (glass-like sheen on upper-left) --
+    g.fillStyle(light, 0.3);
     g.beginPath();
-    g.arc(cx - 3, cy - 3, 8, Math.PI * 1.1, Math.PI * 1.7);
-    g.lineTo(cx - 3, cy - 3);
+    // Small arc on upper-left for shininess
+    for (let angle = Math.PI * 1.1; angle >= Math.PI * 1.8; angle -= 0.15) {
+      const px = cx - 3 + Math.cos(angle) * 6;
+      const py = domeY - 3 + Math.sin(angle) * -4;
+      if (angle === Math.PI * 1.1) {
+        g.moveTo(px, py);
+      } else {
+        g.lineTo(px, py);
+      }
+    }
+    g.lineTo(cx - 3, domeY - 3);
     g.closePath();
     g.fillPath();
 
