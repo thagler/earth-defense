@@ -3,6 +3,8 @@ import { ENEMIES, EnemyConfig } from '../config/enemies';
 import { PathFollower, Waypoint } from '../systems/PathFollower';
 import { SoundManager } from '../systems/SoundManager';
 import { calculateDepth } from '../utils/elevation';
+import { IsoDirection, snapToDirection, getSpriteKey } from '../utils/direction';
+import { ENEMY_SPRITE_SIZES } from '../systems/AssetGenerator';
 
 /**
  * Enemy is a Phaser Container that represents a single enemy unit on the map.
@@ -39,6 +41,11 @@ export class Enemy extends Phaser.GameObjects.Container {
   // ---- Slow effect ----
   private slowFactor: number = 1; // 1 = full speed
   private slowTimer: number = 0; // seconds remaining
+
+  // ---- Direction tracking ----
+  private currentDirection: IsoDirection = IsoDirection.S;
+  private prevX: number = 0;
+  private prevY: number = 0;
 
   // ---- Visuals ----
   private bodyRect!: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Sprite;
@@ -99,12 +106,17 @@ export class Enemy extends Phaser.GameObjects.Container {
     // ---- Path following ----
     this.pathFollower = new PathFollower(waypoints, startWaypointIdx, pathElevations);
 
+    // ---- Direction tracking ----
+    this.prevX = startX;
+    this.prevY = startY;
+
     // ---- Create visuals ----
     this.createVisuals();
 
     // ---- Ground shadow (ellipse at tile center, rendered behind body) ----
-    const SIZE = 24;
-    const shadow = scene.add.ellipse(0, 0, SIZE + 8, (SIZE + 8) / 2, 0x000000, 0.15);
+    const spriteSize = ENEMY_SPRITE_SIZES[enemyKey] ?? { width: 24, height: 24 };
+    const shadowWidth = spriteSize.width + 8;
+    const shadow = scene.add.ellipse(0, 0, shadowWidth, shadowWidth / 2, 0x000000, 0.15);
     this.add(shadow);
 
     // Add to scene
@@ -116,30 +128,34 @@ export class Enemy extends Phaser.GameObjects.Container {
   // -------------------------------------------------------------------
 
   private createVisuals(): void {
-    const SIZE = 24;
-    const HALF = SIZE / 2;
-    const HEALTH_BAR_WIDTH = SIZE;
+    // Per-type sprite sizes from design doc
+    const spriteSize = ENEMY_SPRITE_SIZES[this.enemyKey] ?? { width: 24, height: 24 };
+    const W = spriteSize.width;
+    const H = spriteSize.height;
+    const HALF_H = H / 2;
+    const HEALTH_BAR_WIDTH = Math.max(W, 24);
     const HEALTH_BAR_HEIGHT = 4;
-    // Bottom-align: body center is now at -HALF, so top edge is at -SIZE
-    // Health bar should be 6px above the top edge: -(SIZE + 6)
-    const HEALTH_BAR_Y = -(SIZE + 6);
+    // Bottom-align: body center is now at -HALF_H, so top edge is at -H
+    // Health bar should be 6px above the top edge: -(H + 6)
+    const HEALTH_BAR_Y = -(H + 6);
 
-    // Body (sprite if texture exists, fallback to colored rectangle)
+    // Body (directional sprite if texture exists, fallback to colored rectangle)
     // Bottom-align: shift body up by half height so visual bottom sits at tile center
     // Enemy keys use underscores in config but hyphens in texture names
-    const enemyTextureKey = `enemy-${this.enemyKey.replace(/_/g, '-')}`;
-    if (this.scene.textures.exists(enemyTextureKey)) {
-      const sprite = this.scene.add.sprite(0, -HALF, enemyTextureKey);
-      sprite.setDisplaySize(SIZE, SIZE);
+    const texturePrefix = `enemy-${this.enemyKey.replace(/_/g, '-')}`;
+    const { key: initialSpriteKey } = getSpriteKey(texturePrefix, IsoDirection.S);
+    if (this.scene.textures.exists(initialSpriteKey)) {
+      const sprite = this.scene.add.sprite(0, -HALF_H, initialSpriteKey);
+      sprite.setDisplaySize(W, H);
       this.bodyRect = sprite;
     } else {
-      this.bodyRect = this.scene.add.rectangle(0, -HALF, SIZE, SIZE, Phaser.Display.Color.HexStringToColor(this.config.color).color);
+      this.bodyRect = this.scene.add.rectangle(0, -HALF_H, W, H, Phaser.Display.Color.HexStringToColor(this.config.color).color);
     }
     this.add(this.bodyRect);
 
     // Shield overlay (slightly larger, semi-transparent blue) -- hidden when no shield
     // Position at same y as body to match
-    this.shieldOverlay = this.scene.add.rectangle(0, -HALF, SIZE + 4, SIZE + 4);
+    this.shieldOverlay = this.scene.add.rectangle(0, -HALF_H, W + 4, H + 4);
     this.shieldOverlay.setStrokeStyle(2, 0x4488ff, 0.8);
     this.shieldOverlay.setFillStyle(0x4488ff, 0.2);
     this.shieldOverlay.setVisible(this.hasShield && this.currentShieldHp > 0);
@@ -283,6 +299,24 @@ export class Enemy extends Phaser.GameObjects.Container {
     const newPos = this.pathFollower.update(this.x, this.y, this.currentSpeed, deltaSec);
     this.setPosition(newPos.x, newPos.y);
 
+    // ---- Direction tracking ----
+    const dx = this.x - this.prevX;
+    const dy = this.y - this.prevY;
+    if (dx !== 0 || dy !== 0) {
+      const newDir = snapToDirection(dx, dy);
+      if (newDir !== this.currentDirection) {
+        this.currentDirection = newDir;
+        const texturePrefix = `enemy-${this.enemyKey.replace(/_/g, '-')}`;
+        const { key, flipX } = getSpriteKey(texturePrefix, newDir);
+        if (this.bodyRect instanceof Phaser.GameObjects.Sprite) {
+          this.bodyRect.setTexture(key);
+          this.bodyRect.setFlipX(flipX);
+        }
+      }
+    }
+    this.prevX = this.x;
+    this.prevY = this.y;
+
     // ---- Update elevation and depth ----
     this.currentElevation = newPos.elevation;
     this.setDepth(calculateDepth(this.y, this.currentElevation));
@@ -331,7 +365,8 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   private updateHealthBar(): void {
     const fraction = Phaser.Math.Clamp(this.currentHp / this.maxHp, 0, 1);
-    const BAR_WIDTH = 24;
+    const spriteSize = ENEMY_SPRITE_SIZES[this.enemyKey] ?? { width: 24, height: 24 };
+    const BAR_WIDTH = Math.max(spriteSize.width, 24);
     this.healthBarFill.setDisplaySize(BAR_WIDTH * fraction, 4);
 
     // Shift origin so the bar shrinks from right to left

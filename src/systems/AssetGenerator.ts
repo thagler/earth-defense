@@ -1,6 +1,20 @@
 import Phaser from 'phaser';
 import { DIRECTION_SUFFIXES } from '../utils/direction';
 import { TOWERS } from '../config/towers';
+import { ENEMIES } from '../config/enemies';
+
+/**
+ * Sprite sizes per enemy type for directional texture generation.
+ * These match the design doc specifications.
+ */
+export const ENEMY_SPRITE_SIZES: Record<string, { width: number; height: number }> = {
+  drone:      { width: 28, height: 28 },
+  skitter:    { width: 30, height: 20 },
+  brute:      { width: 32, height: 40 },
+  shielded:   { width: 28, height: 32 },
+  swarm:      { width: 24, height: 24 },
+  mini_drone: { width: 16, height: 16 },
+};
 
 /**
  * AssetGenerator -- Programmatically generates all game sprite textures
@@ -827,241 +841,943 @@ export class AssetGenerator {
   }
 
   // -------------------------------------------------------------------
-  //  Enemy textures (24x24)
+  //  Enemy textures -- 4 directional variants per enemy type
+  //  Naming: enemy-{type}-{direction}  (e.g., enemy-drone-south)
+  //  Directions: south, southwest, west, northwest
+  //  The other 4 directions (SE, E, NE, N) are achieved via flipX at runtime.
   // -------------------------------------------------------------------
 
   private static generateEnemyTextures(scene: Phaser.Scene): void {
-    const SIZE = 24;
+    const enemyKeys = Object.keys(ENEMIES);
 
-    // ---- enemy-drone: Green diamond/rhombus shape ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
+    for (const enemyKey of enemyKeys) {
+      const config = ENEMIES[enemyKey];
+      const colorInt = Phaser.Display.Color.HexStringToColor(config.color).color;
+      const darkColor = Phaser.Display.Color.ValueToColor(colorInt).darken(30).color;
+      const lightColor = Phaser.Display.Color.ValueToColor(colorInt).lighten(30).color;
+      // Texture key uses hyphens (mini_drone -> mini-drone)
+      const texturePrefix = `enemy-${enemyKey.replace(/_/g, '-')}`;
+      const spriteSize = ENEMY_SPRITE_SIZES[enemyKey] ?? { width: 24, height: 24 };
 
-      g.fillStyle(0x66cc66, 1);
-      g.beginPath();
-      g.moveTo(cx, cy - 10);
-      g.lineTo(cx + 10, cy);
-      g.lineTo(cx, cy + 10);
-      g.lineTo(cx - 10, cy);
-      g.closePath();
-      g.fillPath();
+      for (const dir of DIRECTION_SUFFIXES) {
+        const g = scene.make.graphics({} as any);
+        const textureKey = `${texturePrefix}-${dir}`;
+        const w = spriteSize.width;
+        const h = spriteSize.height;
+        const cx = w / 2;
+        const cy = h / 2;
 
-      g.lineStyle(1, 0x88ff88, 0.8);
-      g.beginPath();
-      g.moveTo(cx, cy - 10);
-      g.lineTo(cx + 10, cy);
-      g.lineTo(cx, cy + 10);
-      g.lineTo(cx - 10, cy);
-      g.closePath();
-      g.strokePath();
+        switch (enemyKey) {
+          case 'drone':
+            AssetGenerator.drawDroneEnemy(g, cx, cy, w, h, dir, colorInt, darkColor, lightColor);
+            break;
+          case 'skitter':
+            AssetGenerator.drawSkitterEnemy(g, cx, cy, w, h, dir, colorInt, darkColor, lightColor);
+            break;
+          case 'brute':
+            AssetGenerator.drawBruteEnemy(g, cx, cy, w, h, dir, colorInt, darkColor, lightColor);
+            break;
+          case 'shielded':
+            AssetGenerator.drawShieldedEnemy(g, cx, cy, w, h, dir, colorInt, darkColor, lightColor);
+            break;
+          case 'swarm':
+            AssetGenerator.drawSwarmEnemy(g, cx, cy, w, h, dir, colorInt, darkColor, lightColor);
+            break;
+          case 'mini_drone':
+            AssetGenerator.drawMiniDroneEnemy(g, cx, cy, w, h, dir, colorInt, darkColor, lightColor);
+            break;
+        }
 
-      // Center eye
-      g.fillStyle(0xccffcc, 0.8);
-      g.fillCircle(cx, cy, 3);
-      g.fillStyle(0x003300, 0.9);
-      g.fillCircle(cx, cy, 1);
-
-      g.generateTexture('enemy-drone', SIZE, SIZE);
-      g.destroy();
-    }
-
-    // ---- enemy-skitter: Yellow elongated shape with legs ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
-
-      // Elongated body
-      g.fillStyle(0xcccc22, 1);
-      g.beginPath();
-      g.moveTo(cx - 4, cy - 10);
-      g.lineTo(cx + 4, cy - 10);
-      g.lineTo(cx + 6, cy);
-      g.lineTo(cx + 4, cy + 10);
-      g.lineTo(cx - 4, cy + 10);
-      g.lineTo(cx - 6, cy);
-      g.closePath();
-      g.fillPath();
-
-      g.lineStyle(1, 0xffff44, 0.8);
-      g.beginPath();
-      g.moveTo(cx - 4, cy - 10);
-      g.lineTo(cx + 4, cy - 10);
-      g.lineTo(cx + 6, cy);
-      g.lineTo(cx + 4, cy + 10);
-      g.lineTo(cx - 4, cy + 10);
-      g.lineTo(cx - 6, cy);
-      g.closePath();
-      g.strokePath();
-
-      // Legs (3 pairs)
-      g.lineStyle(1, 0xdddd33, 0.7);
-      for (let i = -1; i <= 1; i++) {
-        const ly = cy + i * 6;
-        // Left leg
-        g.beginPath();
-        g.moveTo(cx - 5, ly);
-        g.lineTo(cx - 11, ly - 2);
-        g.strokePath();
-        // Right leg
-        g.beginPath();
-        g.moveTo(cx + 5, ly);
-        g.lineTo(cx + 11, ly - 2);
-        g.strokePath();
+        g.generateTexture(textureKey, w, h);
+        g.destroy();
       }
-
-      // Eyes
-      g.fillStyle(0xffff88, 0.9);
-      g.fillCircle(cx - 2, cy - 6, 1.5);
-      g.fillCircle(cx + 2, cy - 6, 1.5);
-
-      g.generateTexture('enemy-skitter', SIZE, SIZE);
-      g.destroy();
     }
+  }
 
-    // ---- enemy-brute: Red large square with armor plating ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
+  // -------------------------------------------------------------------
+  //  Directional enemy drawing helpers
+  // -------------------------------------------------------------------
 
-      // Main body (large rounded-ish square)
-      g.fillStyle(0xcc2222, 1);
-      g.fillRect(cx - 10, cy - 10, 20, 20);
-
-      g.lineStyle(2, 0xff4444, 0.9);
-      g.strokeRect(cx - 10, cy - 10, 20, 20);
-
-      // Armor plating lines (horizontal stripes)
-      g.lineStyle(1, 0x991111, 0.7);
-      g.beginPath();
-      g.moveTo(cx - 8, cy - 4);
-      g.lineTo(cx + 8, cy - 4);
-      g.strokePath();
-      g.beginPath();
-      g.moveTo(cx - 8, cy + 4);
-      g.lineTo(cx + 8, cy + 4);
-      g.strokePath();
-
-      // Armor rivets (small dots at corners)
-      g.fillStyle(0xff6666, 0.8);
-      g.fillCircle(cx - 7, cy - 7, 1.5);
-      g.fillCircle(cx + 7, cy - 7, 1.5);
-      g.fillCircle(cx - 7, cy + 7, 1.5);
-      g.fillCircle(cx + 7, cy + 7, 1.5);
-
-      // Eye slit
-      g.fillStyle(0xff8888, 0.9);
-      g.fillRect(cx - 5, cy - 2, 10, 3);
-
-      g.generateTexture('enemy-brute', SIZE, SIZE);
-      g.destroy();
-    }
-
-    // ---- enemy-shielded: Blue circle with shield ring ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
-
-      // Shield ring (outer)
-      g.lineStyle(2, 0x4488ff, 0.5);
-      g.strokeCircle(cx, cy, 11);
-
-      // Main body circle
-      g.fillStyle(0x2266cc, 1);
-      g.fillCircle(cx, cy, 9);
-
-      g.lineStyle(1, 0x4488ff, 0.8);
-      g.strokeCircle(cx, cy, 9);
-
-      // Shield shimmer arcs
-      g.lineStyle(1, 0x88bbff, 0.3);
-      g.beginPath();
-      g.arc(cx, cy, 11, -0.5, 0.5);
-      g.strokePath();
-      g.beginPath();
-      g.arc(cx, cy, 11, 2.1, 3.1);
-      g.strokePath();
-
-      // Inner core
-      g.fillStyle(0x88bbff, 0.6);
-      g.fillCircle(cx, cy, 4);
-      g.fillStyle(0xccddff, 0.7);
-      g.fillCircle(cx, cy, 2);
-
-      g.generateTexture('enemy-shielded', SIZE, SIZE);
-      g.destroy();
-    }
-
-    // ---- enemy-swarm: Pink cluster of small dots ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
-
-      // Cluster of dots arranged in a cluster pattern
-      const dots = [
-        { x: 0, y: 0, r: 4 },
-        { x: -5, y: -5, r: 3 },
-        { x: 5, y: -5, r: 3 },
-        { x: -6, y: 4, r: 3 },
-        { x: 6, y: 4, r: 3 },
-        { x: 0, y: -7, r: 2.5 },
-        { x: 0, y: 7, r: 2.5 },
-      ];
-
-      // Draw soft glow behind
-      g.fillStyle(0xff88ff, 0.1);
-      g.fillCircle(cx, cy, 11);
-
-      for (const dot of dots) {
-        g.fillStyle(0xcc44cc, 1);
-        g.fillCircle(cx + dot.x, cy + dot.y, dot.r);
-        g.lineStyle(1, 0xff88ff, 0.7);
-        g.strokeCircle(cx + dot.x, cy + dot.y, dot.r);
+  /**
+   * Drone: Small hovering saucer. Domed top, flat underside with glow.
+   * Thin antennae. Hover gap suggests flight. (28x28)
+   */
+  private static drawDroneEnemy(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number,
+    _w: number, _h: number, dir: string,
+    color: number, dark: number, light: number,
+  ): void {
+    switch (dir) {
+      case 'south': {
+        // Front-facing: full dome, underside glow visible
+        // Dome (top half-ellipse)
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.arc(cx, cy - 2, 10, Math.PI, 0);
+        g.lineTo(cx + 10, cy + 2);
+        g.lineTo(cx - 10, cy + 2);
+        g.closePath();
+        g.fillPath();
+        // Dome highlight
+        g.fillStyle(light, 0.3);
+        g.beginPath();
+        g.arc(cx, cy - 4, 6, Math.PI * 1.1, Math.PI * 1.8);
+        g.lineTo(cx, cy - 4);
+        g.closePath();
+        g.fillPath();
+        // Flat underside
+        g.fillStyle(dark, 1);
+        g.fillEllipse(cx, cy + 3, 22, 8);
+        g.lineStyle(1, 0x000000, 0.6);
+        g.strokeEllipse(cx, cy + 3, 22, 8);
+        // Underside glow
+        g.fillStyle(light, 0.4);
+        g.fillEllipse(cx, cy + 4, 12, 4);
+        // Antennae (symmetrical for front view)
+        g.lineStyle(1, dark, 0.7);
+        g.beginPath(); g.moveTo(cx - 4, cy - 10); g.lineTo(cx - 6, cy - 14); g.strokePath();
+        g.beginPath(); g.moveTo(cx + 4, cy - 10); g.lineTo(cx + 6, cy - 14); g.strokePath();
+        // Antenna tips
+        g.fillStyle(light, 0.8);
+        g.fillCircle(cx - 6, cy - 14, 1);
+        g.fillCircle(cx + 6, cy - 14, 1);
+        // Outline
+        g.lineStyle(1, 0x000000, 0.5);
+        g.beginPath();
+        g.arc(cx, cy - 2, 10, Math.PI, 0);
+        g.strokePath();
+        break;
       }
+      case 'southwest': {
+        // Three-quarter front-left: dome offset, one antenna more prominent
+        // Far-side body (dark)
+        g.fillStyle(dark, 0.8);
+        g.fillEllipse(cx + 2, cy + 2, 18, 8);
+        // Near-side dome
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.arc(cx - 1, cy - 2, 10, Math.PI, 0);
+        g.lineTo(cx + 9, cy + 1);
+        g.lineTo(cx - 11, cy + 1);
+        g.closePath();
+        g.fillPath();
+        // Dome highlight (near side, left)
+        g.fillStyle(light, 0.3);
+        g.beginPath();
+        g.arc(cx - 4, cy - 4, 5, Math.PI * 1.2, Math.PI * 1.7);
+        g.lineTo(cx - 4, cy - 4);
+        g.closePath();
+        g.fillPath();
+        // Underside
+        g.fillStyle(dark, 1);
+        g.fillEllipse(cx, cy + 3, 20, 7);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeEllipse(cx, cy + 3, 20, 7);
+        // Underside glow (offset left)
+        g.fillStyle(light, 0.3);
+        g.fillEllipse(cx - 2, cy + 3, 10, 4);
+        // Left antenna (prominent)
+        g.lineStyle(1, dark, 0.7);
+        g.beginPath(); g.moveTo(cx - 6, cy - 10); g.lineTo(cx - 10, cy - 14); g.strokePath();
+        g.fillStyle(light, 0.8);
+        g.fillCircle(cx - 10, cy - 14, 1);
+        // Right antenna (partially hidden)
+        g.lineStyle(1, dark, 0.4);
+        g.beginPath(); g.moveTo(cx + 3, cy - 10); g.lineTo(cx + 5, cy - 13); g.strokePath();
+        // Outline
+        g.lineStyle(1, 0x000000, 0.4);
+        g.beginPath();
+        g.arc(cx - 1, cy - 2, 10, Math.PI, 0);
+        g.strokePath();
+        break;
+      }
+      case 'west': {
+        // Side profile: dome profile, single antenna, underside edge
+        // Far-side shadow
+        g.fillStyle(dark, 0.5);
+        g.fillEllipse(cx + 2, cy + 2, 14, 7);
+        // Dome side profile
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.arc(cx, cy - 1, 10, Math.PI, 0);
+        g.lineTo(cx + 10, cy + 2);
+        g.lineTo(cx - 10, cy + 2);
+        g.closePath();
+        g.fillPath();
+        // Near-side highlight (left half is near)
+        g.fillStyle(light, 0.25);
+        g.fillRect(cx - 10, cy - 8, 10, 10);
+        // Dark far side
+        g.fillStyle(dark, 0.2);
+        g.fillRect(cx, cy - 8, 10, 10);
+        // Underside strip
+        g.fillStyle(dark, 1);
+        g.fillEllipse(cx, cy + 3, 20, 6);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeEllipse(cx, cy + 3, 20, 6);
+        // Antenna (one, left side)
+        g.lineStyle(1, dark, 0.7);
+        g.beginPath(); g.moveTo(cx - 2, cy - 10); g.lineTo(cx - 6, cy - 14); g.strokePath();
+        g.fillStyle(light, 0.8);
+        g.fillCircle(cx - 6, cy - 14, 1);
+        // Outline
+        g.lineStyle(1, 0x000000, 0.5);
+        g.beginPath();
+        g.arc(cx, cy - 1, 10, Math.PI, 0);
+        g.strokePath();
+        break;
+      }
+      case 'northwest': {
+        // Three-quarter rear: back of dome, antenna behind, underside visible
+        // Back of dome (darker)
+        g.fillStyle(dark, 1);
+        g.beginPath();
+        g.arc(cx + 1, cy - 2, 10, Math.PI, 0);
+        g.lineTo(cx + 11, cy + 1);
+        g.lineTo(cx - 9, cy + 1);
+        g.closePath();
+        g.fillPath();
+        // Slight near-side edge highlight
+        g.fillStyle(color, 0.5);
+        g.beginPath();
+        g.arc(cx - 2, cy - 2, 8, Math.PI * 1.0, Math.PI * 1.5);
+        g.lineTo(cx - 2, cy - 2);
+        g.closePath();
+        g.fillPath();
+        // Underside
+        g.fillStyle(dark, 1);
+        g.fillEllipse(cx, cy + 3, 20, 7);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeEllipse(cx, cy + 3, 20, 7);
+        // Underside glow (faint from rear)
+        g.fillStyle(light, 0.15);
+        g.fillEllipse(cx, cy + 4, 8, 3);
+        // Antenna (visible but from behind)
+        g.lineStyle(1, dark, 0.5);
+        g.beginPath(); g.moveTo(cx - 4, cy - 10); g.lineTo(cx - 8, cy - 13); g.strokePath();
+        // Back detail: exhaust vent
+        g.fillStyle(0x000000, 0.3);
+        g.fillEllipse(cx + 3, cy, 4, 3);
+        // Outline
+        g.lineStyle(1, 0x000000, 0.4);
+        g.beginPath();
+        g.arc(cx + 1, cy - 2, 10, Math.PI, 0);
+        g.strokePath();
+        break;
+      }
+    }
+  }
 
-      // Bright center
-      g.fillStyle(0xffaaff, 0.6);
-      g.fillCircle(cx, cy, 2);
+  /**
+   * Skitter: Low insectoid. Elongated body with 4-6 legs per side.
+   * Fast, menacing silhouette. (30x20)
+   */
+  private static drawSkitterEnemy(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number,
+    _w: number, _h: number, dir: string,
+    color: number, dark: number, light: number,
+  ): void {
+    switch (dir) {
+      case 'south': {
+        // Front-facing: oval body, legs splayed outward, eyes visible
+        // Body (elongated oval heading toward camera)
+        g.fillStyle(color, 1);
+        g.fillEllipse(cx, cy, 16, 14);
+        // Far-side shading
+        g.fillStyle(dark, 0.3);
+        g.fillEllipse(cx, cy - 2, 14, 8);
+        // Near-side highlight
+        g.fillStyle(light, 0.2);
+        g.fillEllipse(cx, cy + 2, 10, 6);
+        // Outline
+        g.lineStyle(1, 0x000000, 0.6);
+        g.strokeEllipse(cx, cy, 16, 14);
+        // Legs (3 pairs, splayed outward)
+        g.lineStyle(1.5, dark, 0.8);
+        // Front legs
+        g.beginPath(); g.moveTo(cx - 6, cy - 2); g.lineTo(cx - 13, cy - 6); g.strokePath();
+        g.beginPath(); g.moveTo(cx + 6, cy - 2); g.lineTo(cx + 13, cy - 6); g.strokePath();
+        // Mid legs
+        g.beginPath(); g.moveTo(cx - 7, cy + 1); g.lineTo(cx - 14, cy); g.strokePath();
+        g.beginPath(); g.moveTo(cx + 7, cy + 1); g.lineTo(cx + 14, cy); g.strokePath();
+        // Rear legs
+        g.beginPath(); g.moveTo(cx - 6, cy + 4); g.lineTo(cx - 12, cy + 7); g.strokePath();
+        g.beginPath(); g.moveTo(cx + 6, cy + 4); g.lineTo(cx + 12, cy + 7); g.strokePath();
+        // Eyes
+        g.fillStyle(light, 0.9);
+        g.fillCircle(cx - 3, cy - 5, 1.5);
+        g.fillCircle(cx + 3, cy - 5, 1.5);
+        g.fillStyle(0x000000, 0.8);
+        g.fillCircle(cx - 3, cy - 5, 0.7);
+        g.fillCircle(cx + 3, cy - 5, 0.7);
+        break;
+      }
+      case 'southwest': {
+        // Three-quarter: body angled, near-side legs visible, far-side legs behind
+        // Body (angled oval)
+        g.fillStyle(dark, 0.7);
+        g.fillEllipse(cx + 2, cy + 1, 14, 12);
+        g.fillStyle(color, 1);
+        g.fillEllipse(cx - 1, cy, 16, 13);
+        // Near-side highlight
+        g.fillStyle(light, 0.2);
+        g.beginPath();
+        g.arc(cx - 4, cy + 1, 5, 0, Math.PI);
+        g.fillPath();
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeEllipse(cx - 1, cy, 16, 13);
+        // Near-side legs (left, prominent)
+        g.lineStyle(1.5, dark, 0.9);
+        g.beginPath(); g.moveTo(cx - 6, cy - 3); g.lineTo(cx - 14, cy - 7); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 7, cy); g.lineTo(cx - 15, cy - 1); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 6, cy + 4); g.lineTo(cx - 13, cy + 6); g.strokePath();
+        // Far-side legs (right, subdued)
+        g.lineStyle(1, dark, 0.4);
+        g.beginPath(); g.moveTo(cx + 5, cy - 2); g.lineTo(cx + 10, cy - 5); g.strokePath();
+        g.beginPath(); g.moveTo(cx + 6, cy + 2); g.lineTo(cx + 11, cy + 1); g.strokePath();
+        // Eye (near side)
+        g.fillStyle(light, 0.9);
+        g.fillCircle(cx - 4, cy - 5, 1.5);
+        g.fillStyle(0x000000, 0.8);
+        g.fillCircle(cx - 4, cy - 5, 0.7);
+        break;
+      }
+      case 'west': {
+        // Side profile: elongated body horizontal, legs below
+        // Body (long horizontal oval)
+        g.fillStyle(color, 1);
+        g.fillEllipse(cx, cy - 1, 22, 10);
+        // Near-side shading
+        g.fillStyle(light, 0.15);
+        g.fillEllipse(cx - 2, cy - 3, 18, 5);
+        // Far-side shadow
+        g.fillStyle(dark, 0.2);
+        g.fillEllipse(cx + 2, cy + 1, 18, 5);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeEllipse(cx, cy - 1, 22, 10);
+        // Legs (all on near side, 4 visible)
+        g.lineStyle(1.5, dark, 0.8);
+        g.beginPath(); g.moveTo(cx - 7, cy + 3); g.lineTo(cx - 10, cy + 8); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 3, cy + 3); g.lineTo(cx - 5, cy + 9); g.strokePath();
+        g.beginPath(); g.moveTo(cx + 2, cy + 3); g.lineTo(cx + 1, cy + 9); g.strokePath();
+        g.beginPath(); g.moveTo(cx + 6, cy + 3); g.lineTo(cx + 5, cy + 8); g.strokePath();
+        // Mandibles at front (left)
+        g.lineStyle(1, dark, 0.7);
+        g.beginPath(); g.moveTo(cx - 10, cy - 2); g.lineTo(cx - 14, cy - 4); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 10, cy); g.lineTo(cx - 14, cy + 1); g.strokePath();
+        // Eye
+        g.fillStyle(light, 0.9);
+        g.fillCircle(cx - 8, cy - 3, 1.5);
+        g.fillStyle(0x000000, 0.8);
+        g.fillCircle(cx - 8, cy - 3, 0.7);
+        break;
+      }
+      case 'northwest': {
+        // Three-quarter rear: back of body, far legs, tail end prominent
+        // Body (angled away)
+        g.fillStyle(dark, 1);
+        g.fillEllipse(cx + 1, cy, 16, 13);
+        // Lighter near edge
+        g.fillStyle(color, 0.6);
+        g.beginPath();
+        g.arc(cx - 3, cy - 1, 6, Math.PI, 0);
+        g.fillPath();
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeEllipse(cx + 1, cy, 16, 13);
+        // Near-side legs (left, from behind)
+        g.lineStyle(1.5, dark, 0.7);
+        g.beginPath(); g.moveTo(cx - 5, cy - 3); g.lineTo(cx - 13, cy - 6); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 6, cy); g.lineTo(cx - 14, cy); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 5, cy + 4); g.lineTo(cx - 12, cy + 6); g.strokePath();
+        // Far-side legs (faint)
+        g.lineStyle(1, dark, 0.3);
+        g.beginPath(); g.moveTo(cx + 5, cy - 2); g.lineTo(cx + 10, cy - 5); g.strokePath();
+        g.beginPath(); g.moveTo(cx + 6, cy + 3); g.lineTo(cx + 10, cy + 5); g.strokePath();
+        // Tail ridge
+        g.lineStyle(1, dark, 0.5);
+        g.beginPath(); g.moveTo(cx + 5, cy - 3); g.lineTo(cx + 9, cy - 1); g.lineTo(cx + 5, cy + 2); g.strokePath();
+        break;
+      }
+    }
+  }
 
-      g.generateTexture('enemy-swarm', SIZE, SIZE);
-      g.destroy();
+  /**
+   * Brute: Hulking bipedal form. Broad shoulders, thick legs, heavy stance.
+   * Arms hang low. Largest enemy sprite. (32x40)
+   */
+  private static drawBruteEnemy(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number,
+    _w: number, _h: number, dir: string,
+    color: number, dark: number, light: number,
+  ): void {
+    switch (dir) {
+      case 'south': {
+        // Front-facing: wide shoulders, thick legs, eye slit
+        // Thick legs
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 8, cy + 6, 6, 12);
+        g.fillRect(cx + 2, cy + 6, 6, 12);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeRect(cx - 8, cy + 6, 6, 12);
+        g.strokeRect(cx + 2, cy + 6, 6, 12);
+        // Torso (broad)
+        g.fillStyle(color, 1);
+        g.fillRect(cx - 12, cy - 10, 24, 18);
+        g.lineStyle(1, 0x000000, 0.6);
+        g.strokeRect(cx - 12, cy - 10, 24, 18);
+        // Shoulder plates
+        g.fillStyle(light, 0.4);
+        g.fillRect(cx - 14, cy - 12, 8, 8);
+        g.fillRect(cx + 6, cy - 12, 8, 8);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeRect(cx - 14, cy - 12, 8, 8);
+        g.strokeRect(cx + 6, cy - 12, 8, 8);
+        // Head (small, sits on shoulders)
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 5, cy - 18, 10, 8);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeRect(cx - 5, cy - 18, 10, 8);
+        // Eye slit
+        g.fillStyle(light, 0.9);
+        g.fillRect(cx - 4, cy - 15, 8, 2);
+        // Armor plating lines on torso
+        g.lineStyle(1, dark, 0.4);
+        g.beginPath(); g.moveTo(cx - 10, cy - 4); g.lineTo(cx + 10, cy - 4); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 10, cy + 2); g.lineTo(cx + 10, cy + 2); g.strokePath();
+        // Arms (hanging at sides)
+        g.fillStyle(dark, 0.8);
+        g.fillRect(cx - 15, cy - 6, 4, 14);
+        g.fillRect(cx + 11, cy - 6, 4, 14);
+        break;
+      }
+      case 'southwest': {
+        // Three-quarter front-left: shoulder offset, one leg forward
+        // Far leg (behind)
+        g.fillStyle(dark, 0.7);
+        g.fillRect(cx + 1, cy + 6, 6, 12);
+        // Near leg (front, left)
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 7, cy + 7, 6, 12);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeRect(cx - 7, cy + 7, 6, 12);
+        // Torso
+        g.fillStyle(color, 1);
+        g.fillRect(cx - 11, cy - 10, 22, 18);
+        // Far side shading
+        g.fillStyle(dark, 0.25);
+        g.fillRect(cx + 3, cy - 10, 8, 18);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeRect(cx - 11, cy - 10, 22, 18);
+        // Near shoulder plate (left, prominent)
+        g.fillStyle(light, 0.5);
+        g.fillRect(cx - 14, cy - 13, 9, 8);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeRect(cx - 14, cy - 13, 9, 8);
+        // Far shoulder (subdued)
+        g.fillStyle(dark, 0.5);
+        g.fillRect(cx + 5, cy - 11, 7, 6);
+        // Head
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 5, cy - 18, 9, 7);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeRect(cx - 5, cy - 18, 9, 7);
+        // Eye slit
+        g.fillStyle(light, 0.8);
+        g.fillRect(cx - 4, cy - 15, 6, 2);
+        // Near arm
+        g.fillStyle(dark, 0.8);
+        g.fillRect(cx - 15, cy - 6, 4, 14);
+        // Armor lines
+        g.lineStyle(1, dark, 0.3);
+        g.beginPath(); g.moveTo(cx - 9, cy - 3); g.lineTo(cx + 8, cy - 3); g.strokePath();
+        break;
+      }
+      case 'west': {
+        // Side profile: full silhouette, one arm visible, legs in stride
+        // Far leg
+        g.fillStyle(dark, 0.6);
+        g.fillRect(cx + 1, cy + 5, 5, 13);
+        // Near leg
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 5, cy + 6, 5, 13);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeRect(cx - 5, cy + 6, 5, 13);
+        // Torso (narrower from side)
+        g.fillStyle(color, 1);
+        g.fillRect(cx - 8, cy - 10, 16, 18);
+        // Near-side light
+        g.fillStyle(light, 0.15);
+        g.fillRect(cx - 8, cy - 10, 8, 18);
+        // Far-side dark
+        g.fillStyle(dark, 0.2);
+        g.fillRect(cx, cy - 10, 8, 18);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeRect(cx - 8, cy - 10, 16, 18);
+        // Shoulder plate (side view)
+        g.fillStyle(light, 0.4);
+        g.fillRect(cx - 10, cy - 13, 6, 8);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeRect(cx - 10, cy - 13, 6, 8);
+        // Head (side)
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 5, cy - 18, 8, 7);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeRect(cx - 5, cy - 18, 8, 7);
+        // Eye (single dot from side)
+        g.fillStyle(light, 0.9);
+        g.fillCircle(cx - 3, cy - 15, 1.5);
+        // Arm (near side)
+        g.fillStyle(dark, 0.8);
+        g.fillRect(cx - 11, cy - 5, 4, 14);
+        // Back armor ridge
+        g.lineStyle(1, dark, 0.4);
+        g.beginPath(); g.moveTo(cx + 7, cy - 8); g.lineTo(cx + 7, cy + 6); g.strokePath();
+        break;
+      }
+      case 'northwest': {
+        // Three-quarter rear: wide back, shoulder plates from behind
+        // Far leg
+        g.fillStyle(dark, 0.6);
+        g.fillRect(cx - 6, cy + 6, 5, 12);
+        // Near leg
+        g.fillStyle(dark, 0.9);
+        g.fillRect(cx + 2, cy + 7, 5, 12);
+        // Torso (back view)
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 11, cy - 10, 22, 18);
+        // Lighter near edge (left side from behind is right on screen)
+        g.fillStyle(color, 0.4);
+        g.fillRect(cx - 11, cy - 10, 8, 18);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeRect(cx - 11, cy - 10, 22, 18);
+        // Shoulder plates (from behind)
+        g.fillStyle(dark, 0.7);
+        g.fillRect(cx - 13, cy - 12, 8, 7);
+        g.fillRect(cx + 5, cy - 13, 8, 8);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeRect(cx - 13, cy - 12, 8, 7);
+        g.strokeRect(cx + 5, cy - 13, 8, 8);
+        // Head (back of head)
+        g.fillStyle(dark, 0.9);
+        g.fillRect(cx - 4, cy - 18, 8, 7);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeRect(cx - 4, cy - 18, 8, 7);
+        // Back spine ridge
+        g.lineStyle(2, 0x000000, 0.3);
+        g.beginPath(); g.moveTo(cx, cy - 16); g.lineTo(cx, cy + 4); g.strokePath();
+        // Back vent slits
+        g.lineStyle(1, 0x000000, 0.3);
+        g.beginPath(); g.moveTo(cx - 8, cy - 2); g.lineTo(cx + 8, cy - 2); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 6, cy + 3); g.lineTo(cx + 6, cy + 3); g.strokePath();
+        // Near arm (faint, from behind)
+        g.fillStyle(dark, 0.5);
+        g.fillRect(cx - 14, cy - 6, 3, 12);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Shielded: Armored walker with carapace plates. Similar proportions to Drone
+   * but with angular armor segments. Shield visual is a translucent arc. (28x32)
+   */
+  private static drawShieldedEnemy(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number,
+    _w: number, _h: number, dir: string,
+    color: number, dark: number, light: number,
+  ): void {
+    switch (dir) {
+      case 'south': {
+        // Front-facing: angular body, carapace plates visible, shield arc at front
+        // Legs (short, armored)
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 6, cy + 6, 4, 8);
+        g.fillRect(cx + 2, cy + 6, 4, 8);
+        // Main body (angular pentagon shape)
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.moveTo(cx, cy - 12);
+        g.lineTo(cx + 10, cy - 4);
+        g.lineTo(cx + 8, cy + 6);
+        g.lineTo(cx - 8, cy + 6);
+        g.lineTo(cx - 10, cy - 4);
+        g.closePath();
+        g.fillPath();
+        g.lineStyle(1, 0x000000, 0.6);
+        g.strokePath();
+        // Carapace plate lines (angular)
+        g.lineStyle(1, dark, 0.5);
+        g.beginPath(); g.moveTo(cx - 8, cy - 2); g.lineTo(cx, cy - 6); g.lineTo(cx + 8, cy - 2); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 6, cy + 2); g.lineTo(cx, cy - 1); g.lineTo(cx + 6, cy + 2); g.strokePath();
+        // Visor/eyes
+        g.fillStyle(light, 0.8);
+        g.fillRect(cx - 5, cy - 8, 10, 3);
+        // Shoulder armor points
+        g.fillStyle(light, 0.3);
+        g.beginPath();
+        g.moveTo(cx - 10, cy - 4);
+        g.lineTo(cx - 13, cy - 6);
+        g.lineTo(cx - 10, cy - 8);
+        g.closePath();
+        g.fillPath();
+        g.beginPath();
+        g.moveTo(cx + 10, cy - 4);
+        g.lineTo(cx + 13, cy - 6);
+        g.lineTo(cx + 10, cy - 8);
+        g.closePath();
+        g.fillPath();
+        // Shield arc (translucent, front)
+        g.lineStyle(2, light, 0.4);
+        g.beginPath();
+        g.arc(cx, cy, 13, Math.PI * 1.2, Math.PI * 1.8);
+        g.strokePath();
+        g.lineStyle(1, light, 0.2);
+        g.beginPath();
+        g.arc(cx, cy, 15, Math.PI * 1.25, Math.PI * 1.75);
+        g.strokePath();
+        break;
+      }
+      case 'southwest': {
+        // Three-quarter: angular body angled, near-side armor more visible
+        // Far leg
+        g.fillStyle(dark, 0.6);
+        g.fillRect(cx + 1, cy + 6, 4, 8);
+        // Near leg
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 6, cy + 7, 4, 8);
+        // Body
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.moveTo(cx - 1, cy - 12);
+        g.lineTo(cx + 9, cy - 5);
+        g.lineTo(cx + 7, cy + 6);
+        g.lineTo(cx - 9, cy + 6);
+        g.lineTo(cx - 11, cy - 4);
+        g.closePath();
+        g.fillPath();
+        // Far-side shading
+        g.fillStyle(dark, 0.25);
+        g.fillRect(cx + 2, cy - 10, 7, 16);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.beginPath();
+        g.moveTo(cx - 1, cy - 12);
+        g.lineTo(cx + 9, cy - 5);
+        g.lineTo(cx + 7, cy + 6);
+        g.lineTo(cx - 9, cy + 6);
+        g.lineTo(cx - 11, cy - 4);
+        g.closePath();
+        g.strokePath();
+        // Carapace lines
+        g.lineStyle(1, dark, 0.4);
+        g.beginPath(); g.moveTo(cx - 9, cy - 1); g.lineTo(cx, cy - 5); g.lineTo(cx + 7, cy - 1); g.strokePath();
+        // Visor
+        g.fillStyle(light, 0.7);
+        g.fillRect(cx - 5, cy - 9, 8, 2);
+        // Near-side shoulder point
+        g.fillStyle(light, 0.3);
+        g.beginPath();
+        g.moveTo(cx - 11, cy - 4);
+        g.lineTo(cx - 14, cy - 7);
+        g.lineTo(cx - 10, cy - 9);
+        g.closePath();
+        g.fillPath();
+        // Shield arc (angled to front-left)
+        g.lineStyle(2, light, 0.35);
+        g.beginPath();
+        g.arc(cx - 2, cy, 13, Math.PI * 1.1, Math.PI * 1.6);
+        g.strokePath();
+        break;
+      }
+      case 'west': {
+        // Side profile: angular silhouette, carapace ridge visible
+        // Far leg
+        g.fillStyle(dark, 0.5);
+        g.fillRect(cx + 2, cy + 5, 3, 9);
+        // Near leg
+        g.fillStyle(dark, 1);
+        g.fillRect(cx - 4, cy + 6, 3, 9);
+        // Body (narrower from side)
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.moveTo(cx - 2, cy - 12);
+        g.lineTo(cx + 6, cy - 6);
+        g.lineTo(cx + 6, cy + 6);
+        g.lineTo(cx - 6, cy + 6);
+        g.lineTo(cx - 8, cy - 4);
+        g.closePath();
+        g.fillPath();
+        // Near-side highlight
+        g.fillStyle(light, 0.15);
+        g.fillRect(cx - 8, cy - 10, 6, 16);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.beginPath();
+        g.moveTo(cx - 2, cy - 12);
+        g.lineTo(cx + 6, cy - 6);
+        g.lineTo(cx + 6, cy + 6);
+        g.lineTo(cx - 6, cy + 6);
+        g.lineTo(cx - 8, cy - 4);
+        g.closePath();
+        g.strokePath();
+        // Carapace ridge
+        g.lineStyle(1, dark, 0.5);
+        g.beginPath(); g.moveTo(cx - 2, cy - 12); g.lineTo(cx - 2, cy + 4); g.strokePath();
+        // Eye (side)
+        g.fillStyle(light, 0.9);
+        g.fillCircle(cx - 5, cy - 8, 1.5);
+        // Shoulder spike
+        g.fillStyle(light, 0.3);
+        g.beginPath();
+        g.moveTo(cx - 8, cy - 4);
+        g.lineTo(cx - 12, cy - 8);
+        g.lineTo(cx - 6, cy - 8);
+        g.closePath();
+        g.fillPath();
+        // Shield arc (facing left)
+        g.lineStyle(2, light, 0.35);
+        g.beginPath();
+        g.arc(cx - 2, cy, 12, Math.PI * 0.8, Math.PI * 1.2);
+        g.strokePath();
+        break;
+      }
+      case 'northwest': {
+        // Three-quarter rear: back carapace plates, angular rear armor
+        // Far leg
+        g.fillStyle(dark, 0.5);
+        g.fillRect(cx - 5, cy + 5, 4, 8);
+        // Near leg
+        g.fillStyle(dark, 0.9);
+        g.fillRect(cx + 2, cy + 6, 4, 8);
+        // Body (rear view, darker)
+        g.fillStyle(dark, 1);
+        g.beginPath();
+        g.moveTo(cx + 1, cy - 12);
+        g.lineTo(cx + 10, cy - 5);
+        g.lineTo(cx + 8, cy + 6);
+        g.lineTo(cx - 8, cy + 6);
+        g.lineTo(cx - 10, cy - 4);
+        g.closePath();
+        g.fillPath();
+        // Near-side edge color
+        g.fillStyle(color, 0.4);
+        g.fillRect(cx - 10, cy - 8, 6, 14);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.beginPath();
+        g.moveTo(cx + 1, cy - 12);
+        g.lineTo(cx + 10, cy - 5);
+        g.lineTo(cx + 8, cy + 6);
+        g.lineTo(cx - 8, cy + 6);
+        g.lineTo(cx - 10, cy - 4);
+        g.closePath();
+        g.strokePath();
+        // Back carapace plates
+        g.lineStyle(1, 0x000000, 0.3);
+        g.beginPath(); g.moveTo(cx - 6, cy - 2); g.lineTo(cx + 1, cy - 8); g.lineTo(cx + 7, cy - 2); g.strokePath();
+        g.beginPath(); g.moveTo(cx - 5, cy + 3); g.lineTo(cx + 1, cy - 1); g.lineTo(cx + 6, cy + 3); g.strokePath();
+        // Back exhaust
+        g.fillStyle(0x000000, 0.3);
+        g.fillEllipse(cx + 2, cy + 2, 5, 3);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Swarm: Cluster of 5-8 tiny dots in a loose cloud formation.
+   * Cloud shifts per direction to suggest movement. (24x24)
+   */
+  private static drawSwarmEnemy(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number,
+    _w: number, _h: number, dir: string,
+    color: number, dark: number, light: number,
+  ): void {
+    // Base dot layout shifts per direction to suggest drift
+    interface SwarmDot { x: number; y: number; r: number; bright: boolean }
+    let dots: SwarmDot[];
+
+    switch (dir) {
+      case 'south':
+        // Cloud drifting toward camera (slightly spread downward)
+        dots = [
+          { x: 0, y: 1, r: 3.5, bright: true },
+          { x: -4, y: -4, r: 2.5, bright: false },
+          { x: 5, y: -3, r: 2.5, bright: false },
+          { x: -6, y: 3, r: 2, bright: false },
+          { x: 6, y: 4, r: 2, bright: false },
+          { x: -1, y: -7, r: 2, bright: false },
+          { x: 2, y: 6, r: 2.5, bright: true },
+          { x: -3, y: 7, r: 1.5, bright: false },
+        ];
+        break;
+      case 'southwest':
+        // Cloud drifting down-left
+        dots = [
+          { x: -1, y: 1, r: 3.5, bright: true },
+          { x: -6, y: -2, r: 2.5, bright: false },
+          { x: 4, y: -4, r: 2, bright: false },
+          { x: -7, y: 4, r: 2.5, bright: true },
+          { x: 5, y: 3, r: 2, bright: false },
+          { x: -3, y: -6, r: 2, bright: false },
+          { x: 1, y: 6, r: 2, bright: false },
+          { x: -5, y: 7, r: 1.5, bright: false },
+        ];
+        break;
+      case 'west':
+        // Cloud drifting left
+        dots = [
+          { x: -1, y: 0, r: 3.5, bright: true },
+          { x: -6, y: -3, r: 2.5, bright: true },
+          { x: 5, y: -2, r: 2, bright: false },
+          { x: -7, y: 2, r: 2.5, bright: false },
+          { x: 6, y: 3, r: 2, bright: false },
+          { x: -2, y: -6, r: 2, bright: false },
+          { x: -4, y: 5, r: 2, bright: false },
+          { x: 3, y: 6, r: 1.5, bright: false },
+        ];
+        break;
+      case 'northwest':
+        // Cloud drifting up-left
+        dots = [
+          { x: -1, y: -1, r: 3.5, bright: true },
+          { x: -5, y: -5, r: 2.5, bright: true },
+          { x: 4, y: -3, r: 2, bright: false },
+          { x: -6, y: 3, r: 2, bright: false },
+          { x: 5, y: 2, r: 2, bright: false },
+          { x: -3, y: -7, r: 2.5, bright: false },
+          { x: 1, y: 6, r: 1.5, bright: false },
+          { x: 3, y: -6, r: 2, bright: false },
+        ];
+        break;
+      default:
+        dots = [
+          { x: 0, y: 0, r: 3, bright: true },
+          { x: -4, y: -4, r: 2.5, bright: false },
+          { x: 4, y: -4, r: 2.5, bright: false },
+          { x: -5, y: 3, r: 2, bright: false },
+          { x: 5, y: 3, r: 2, bright: false },
+        ];
     }
 
-    // ---- enemy-mini-drone: Light green smaller diamond ----
-    {
-      const g = scene.make.graphics({} as any);
-      const cx = SIZE / 2;
-      const cy = SIZE / 2;
+    // Soft ambient glow
+    g.fillStyle(color, 0.08);
+    g.fillCircle(cx, cy, 11);
 
-      g.fillStyle(0x88dd88, 1);
-      g.beginPath();
-      g.moveTo(cx, cy - 7);
-      g.lineTo(cx + 7, cy);
-      g.lineTo(cx, cy + 7);
-      g.lineTo(cx - 7, cy);
-      g.closePath();
-      g.fillPath();
+    // Draw each dot
+    for (const dot of dots) {
+      const dotColor = dot.bright ? color : dark;
+      g.fillStyle(dotColor, 1);
+      g.fillCircle(cx + dot.x, cy + dot.y, dot.r);
+      g.lineStyle(1, light, dot.bright ? 0.6 : 0.3);
+      g.strokeCircle(cx + dot.x, cy + dot.y, dot.r);
+    }
 
-      g.lineStyle(1, 0xccffcc, 0.8);
-      g.beginPath();
-      g.moveTo(cx, cy - 7);
-      g.lineTo(cx + 7, cy);
-      g.lineTo(cx, cy + 7);
-      g.lineTo(cx - 7, cy);
-      g.closePath();
-      g.strokePath();
+    // Bright center glow
+    g.fillStyle(light, 0.5);
+    g.fillCircle(cx + dots[0].x, cy + dots[0].y, 1.5);
+  }
 
-      // Tiny eye
-      g.fillStyle(0xeeffee, 0.8);
-      g.fillCircle(cx, cy, 2);
-
-      g.generateTexture('enemy-mini-drone', SIZE, SIZE);
-      g.destroy();
+  /**
+   * Mini Drone: Simplified smaller version of Drone. Single body with
+   * tiny wings/antennae. (16x16)
+   */
+  private static drawMiniDroneEnemy(
+    g: Phaser.GameObjects.Graphics, cx: number, cy: number,
+    _w: number, _h: number, dir: string,
+    color: number, dark: number, light: number,
+  ): void {
+    switch (dir) {
+      case 'south': {
+        // Front-facing: small dome, underside glow
+        // Dome
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.arc(cx, cy - 1, 5, Math.PI, 0);
+        g.lineTo(cx + 5, cy + 1);
+        g.lineTo(cx - 5, cy + 1);
+        g.closePath();
+        g.fillPath();
+        // Highlight
+        g.fillStyle(light, 0.3);
+        g.fillCircle(cx - 1, cy - 3, 2);
+        // Underside
+        g.fillStyle(dark, 1);
+        g.fillEllipse(cx, cy + 2, 11, 4);
+        g.lineStyle(1, 0x000000, 0.5);
+        g.strokeEllipse(cx, cy + 2, 11, 4);
+        // Underside glow
+        g.fillStyle(light, 0.3);
+        g.fillCircle(cx, cy + 2, 2);
+        // Tiny antennae
+        g.lineStyle(1, dark, 0.6);
+        g.beginPath(); g.moveTo(cx - 2, cy - 5); g.lineTo(cx - 3, cy - 7); g.strokePath();
+        g.beginPath(); g.moveTo(cx + 2, cy - 5); g.lineTo(cx + 3, cy - 7); g.strokePath();
+        break;
+      }
+      case 'southwest': {
+        // Three-quarter: offset dome, one antenna
+        g.fillStyle(dark, 0.6);
+        g.fillEllipse(cx + 1, cy + 1, 9, 4);
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.arc(cx - 1, cy - 1, 5, Math.PI, 0);
+        g.lineTo(cx + 4, cy + 1);
+        g.lineTo(cx - 6, cy + 1);
+        g.closePath();
+        g.fillPath();
+        g.fillStyle(light, 0.25);
+        g.fillCircle(cx - 2, cy - 3, 2);
+        g.fillStyle(dark, 1);
+        g.fillEllipse(cx, cy + 2, 10, 4);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeEllipse(cx, cy + 2, 10, 4);
+        g.lineStyle(1, dark, 0.6);
+        g.beginPath(); g.moveTo(cx - 3, cy - 5); g.lineTo(cx - 5, cy - 7); g.strokePath();
+        break;
+      }
+      case 'west': {
+        // Side profile
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.arc(cx, cy, 5, Math.PI, 0);
+        g.lineTo(cx + 5, cy + 1);
+        g.lineTo(cx - 5, cy + 1);
+        g.closePath();
+        g.fillPath();
+        g.fillStyle(light, 0.2);
+        g.fillRect(cx - 5, cy - 4, 5, 4);
+        g.fillStyle(dark, 0.15);
+        g.fillRect(cx, cy - 4, 5, 4);
+        g.fillStyle(dark, 1);
+        g.fillEllipse(cx, cy + 2, 10, 3);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeEllipse(cx, cy + 2, 10, 3);
+        // Single antenna
+        g.lineStyle(1, dark, 0.6);
+        g.beginPath(); g.moveTo(cx - 1, cy - 5); g.lineTo(cx - 3, cy - 7); g.strokePath();
+        break;
+      }
+      case 'northwest': {
+        // Three-quarter rear
+        g.fillStyle(dark, 0.9);
+        g.beginPath();
+        g.arc(cx + 1, cy - 1, 5, Math.PI, 0);
+        g.lineTo(cx + 6, cy + 1);
+        g.lineTo(cx - 4, cy + 1);
+        g.closePath();
+        g.fillPath();
+        g.fillStyle(color, 0.4);
+        g.fillCircle(cx - 2, cy - 2, 3);
+        g.fillStyle(dark, 1);
+        g.fillEllipse(cx, cy + 2, 10, 4);
+        g.lineStyle(1, 0x000000, 0.4);
+        g.strokeEllipse(cx, cy + 2, 10, 4);
+        // Faint underside glow
+        g.fillStyle(light, 0.1);
+        g.fillCircle(cx, cy + 2, 1.5);
+        // Antenna from behind
+        g.lineStyle(1, dark, 0.4);
+        g.beginPath(); g.moveTo(cx - 2, cy - 5); g.lineTo(cx - 4, cy - 7); g.strokePath();
+        break;
+      }
     }
   }
 
